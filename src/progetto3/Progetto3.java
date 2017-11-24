@@ -5,12 +5,10 @@
  */
 package progetto3;
 
-<<<<<<< HEAD
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
-=======
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,23 +25,15 @@ import javax.crypto.NoSuchPaddingException;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import progetto3.User;
->>>>>>> a227f67fee91ab66cfd5c2998f34d6cf8bf98072
-
 /**
  *
  * @author dp.alex
  */
 public class Progetto3 {
-
     /**
      * @param args the command line arguments
      */
-<<<<<<< HEAD
-    public static void main(String[] args) {
-    
-    System.out.println("Time ricevuto : \n"+fileUtility.getTimeFromServer("Europe/Rome"));
-    
-=======
+
     public static void main(String[] args) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, InvalidAlgorithmParameterException, SignatureException {
         
         String userName="gianni";
@@ -85,7 +75,6 @@ public class Progetto3 {
         }
 
         return filename;
->>>>>>> a227f67fee91ab66cfd5c2998f34d6cf8bf98072
     }
     
 }
