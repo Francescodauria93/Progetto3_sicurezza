@@ -40,7 +40,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author f.did
  */
-public class KeyRing implements Serializable{
+public class Wallet implements Serializable{
 
     private class Wrapper implements Serializable {
 
@@ -90,7 +90,7 @@ public class KeyRing implements Serializable{
 
     private SecureRandom random;
 
-    public KeyRing() {
+    public Wallet() {
 
         this.wallet = new HashMap<String, Wrapper>();
         this.random = new SecureRandom();
@@ -212,7 +212,7 @@ public class KeyRing implements Serializable{
 
     public void loadWallet(String path ,String password) throws FileNotFoundException, IOException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
 
-        KeyRing w = new KeyRing();
+        Wallet w = new Wallet();
         byte cipherFile[];
         cipherFile = fileUtility.loadFile(path);
         
@@ -238,7 +238,7 @@ public class KeyRing implements Serializable{
         ByteArrayInputStream bis = new ByteArrayInputStream(clearWallet);
         ObjectInput in = null;
         in = new ObjectInputStream(bis);
-        w = (KeyRing)in.readObject(); 
+        w = (Wallet)in.readObject(); 
         
         this.wallet = w.getThisWallet();
         this.privateDsa_1024 = w.getThisPrDsa("1024");
@@ -276,6 +276,9 @@ public class KeyRing implements Serializable{
         fileUtility.writeFile(path+label+".w",complete );
    
 
+    }
+    public String getID(){
+        return "";
     }
 
 }
