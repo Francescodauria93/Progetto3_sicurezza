@@ -15,18 +15,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import javax.crypto.*;
-import progetto3.KeyRing;
+
 /**
  *
  * @author dp.alex
  */
 public class User {
     
-    public void sendDocumentToTSA(String pathFile, String passKR) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException{
-        String path="";
-        KeyRing myKR = new KeyRing();
-        myKR.loadWallet(path, passKR);
-        byte[] myID= myKR.getID().getBytes();
+    public void sendDocumentToTSA(String pathFile,String id) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException{
+       
+        byte[] myID= id.getBytes();
         byte[] fileReaded=fileUtility.loadFile(pathFile);
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         sha.update(fileReaded);
