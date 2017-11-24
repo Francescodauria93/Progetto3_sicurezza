@@ -277,5 +277,9 @@ public class KeyRing implements Serializable{
    
 
     }
+    
+    public String getID(){
+        return "";
+    }
 
 }

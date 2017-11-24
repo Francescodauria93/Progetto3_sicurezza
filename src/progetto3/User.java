@@ -4,11 +4,46 @@
  * and open the template in the editor.
  */
 package progetto3;
-
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import javax.crypto.*;
+import progetto3.KeyRing;
 /**
  *
  * @author dp.alex
  */
 public class User {
-    //
+    
+    public void sendDocumentToTSA(String pathFile, String passKR) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException{
+        String path="";
+        KeyRing myKR = new KeyRing();
+        myKR.loadWallet(path, passKR);
+        byte[] myID= myKR.getID().getBytes();
+        byte[] fileReaded=fileUtility.loadFile(pathFile);
+        MessageDigest sha = MessageDigest.getInstance("SHA-256");
+        sha.update(fileReaded);
+        byte[] hashFileReaded = sha.digest();
+        //creo un ByteArrayOutputStream per concatenare gli array di byte
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(myID.length);
+        outputStream.write(myID);
+        outputStream.write(hashFileReaded);
+        byte completeDocument[] = outputStream.toByteArray();
+        //chiudo lo stram e scrivo l'array di byte appena concatenato
+        outputStream.close();
+        //salvo tutto in documento_ID_user.toTsa
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String destEncrypted = s + "/folderWaitingFiles/documento_"+(new String(myID))+".toTsa";
+        fileUtility.writeFile(destEncrypted, completeDocument);
+        
+    }
 }
