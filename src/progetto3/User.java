@@ -10,5 +10,5 @@ package progetto3;
  * @author dp.alex
  */
 public class User {
-    
+    //
 }
