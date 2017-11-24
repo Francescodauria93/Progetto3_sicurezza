@@ -11,6 +11,9 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 /**
  *
@@ -34,5 +37,19 @@ public class fileUtility implements Serializable {
         Files.write(path, output);
 
     }
+    
+    public static String getTimeFromServer(String id){
+        String time;
+        final Date currentTime = new Date();
+        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d, yyyy hh:mm:ss a z"); 
+        sdf.setTimeZone(TimeZone.getTimeZone(id));
+        return sdf.format(currentTime);
+    }
+    
+    public static String[] getTimeIdServer(){
+        String ids[] = TimeZone.getAvailableIDs();
+        return ids;
+    }
+    
 
 }

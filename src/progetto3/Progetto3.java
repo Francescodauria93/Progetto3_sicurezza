@@ -5,6 +5,11 @@
  */
 package progetto3;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+
 /**
  *
  * @author dp.alex
@@ -15,7 +20,9 @@ public class Progetto3 {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here cicciodafvdavds
+    
+    System.out.println("Time ricevuto : \n"+fileUtility.getTimeFromServer("Europe/Rome"));
+    
     }
     
 }
