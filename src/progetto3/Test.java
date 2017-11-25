@@ -5,6 +5,8 @@
  */
 package progetto3;
 
+import java.io.IOException;
+
 /**
  *
  * @author gia
@@ -14,9 +16,13 @@ public class Test {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         TSA a  = new TSA();
-        a.merkelTree();
+        if("ciao2.hv".compareTo("ciao1.hv")==1){
+        System.out.println("prima maggiore della seconda");
+        }else{
+            System.out.println("seconda maggiore della prima");
+        }
     }
     
 }
