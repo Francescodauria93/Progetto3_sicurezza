@@ -5,6 +5,7 @@
  */
 package progetto3;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -37,19 +38,28 @@ public class fileUtility implements Serializable {
         Files.write(path, output);
 
     }
-    
-    public static String getTimeFromServer(String id){
+
+    public static String getTimeFromServer(String id) {
         String time;
         final Date currentTime = new Date();
-        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d, yyyy hh:mm:ss a z"); 
+        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d, yyyy hh:mm:ss a z");
         sdf.setTimeZone(TimeZone.getTimeZone(id));
         return sdf.format(currentTime);
     }
-    
-    public static String[] getTimeIdServer(){
+
+    public static String[] getTimeIdServer() {
         String ids[] = TimeZone.getAvailableIDs();
         return ids;
     }
-    
+
+    public static byte[] concatByte(byte a[], byte[] b) throws IOException {
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(a);
+        outputStream.write(b);
+        byte c[] = outputStream.toByteArray();
+        outputStream.close();
+        return c;
+    }
 
 }

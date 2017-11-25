@@ -44,13 +44,22 @@ public class TSA {
        // qui costruisco hlist e hID
         for (File child : directoryListing) {
             readByte = fileUtility.loadFile(child.toString()); // leggo il file
-            hlist.add(Arrays.copyOfRange(readByte, 0, 32));
-            hID.add(Arrays.copyOfRange(readByte, 32 + 1, readByte.length).toString());
+            int len = (int)Arrays.copyOfRange(readByte, 0, 1)[0];
+            hID.add(Arrays.copyOfRange(readByte, 1, len + 1).toString());
+            hlist.add(Arrays.copyOfRange(readByte, len + 1, readByte.length));
         }
         
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
-        /*sha.update(fileReaded);
-        byte[] hashFileReaded = sha.digest();*/
+        
+        for(int i =0;i<8;i+=2){
+            sha.update(fileUtility.concatByte(hlist.get(i), hlist.get(i+1)));
+            levelFour.add(sha.digest());
+        }
+        for(int i =0;i<4;i+=2){
+            sha.update(fileUtility.concatByte(levelFour.get(i), levelFour.get(i+1)));
+            levelTwo.add(sha.digest());
+        }
+     
 
     }
 
