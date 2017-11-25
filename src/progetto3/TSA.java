@@ -5,10 +5,34 @@
  */
 package progetto3;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  *
  * @author dp.alex
  */
 public class TSA {
     
-}
+    public void merkelTree(){
+        
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String myDirectoryPath = s + "/folderWaitingFiles";
+        File dir = new File(myDirectoryPath);
+        File[] directoryListing = dir.listFiles();
+        
+        if (directoryListing != null) {
+            
+        for (File child : directoryListing) {
+            
+            System.out.println(child);
+            
+            }
+        }
+        
+    }
+        
+     
+    }
