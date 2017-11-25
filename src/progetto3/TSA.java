@@ -69,7 +69,13 @@ public class TSA {
         byte[] preSuperHash = this.getPreSuperHash(); // carico la superHashprecedente
         sha.update(fileUtility.concatByte(preSuperHash, hashRoot));
         byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
-
+        this.sendPublicSuperHash(newSuperHash); // la pubblico
+        this.sendPublicHash(hashRoot);   // pubblico anche l'hash
+        
+        /* cose da fare : costruire il dizionario ID:etichetta , controllare se user è
+        coerente come si caricano da waitingfile */
+        
+        this.timeframenumber+=1; // aggiorno il timeframe
     }
 
     private void sendPublicHash(byte[] hash) throws IOException {
