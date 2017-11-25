@@ -4,11 +4,25 @@
  * and open the template in the editor.
  */
 package progetto3;
+import java.util.Arrays;
 
 /**
  *
  * @author dp.alex
  */
 public class TSA {
+    
+
+    public static void readDoc(){
+ //questo è quello che leggi da file
+    byte[] fileReaded=null;
+    byte[] docFile = new byte[32];
+    byte[] userID = null;
+    //carico l'hash del file nel suo array di byte 
+    
+    docFile=Arrays.copyOfRange(fileReaded, 0, 32);
+    userID=Arrays.copyOfRange(fileReaded, 32+1, fileReaded.length);
+    
+    }
     
 }
