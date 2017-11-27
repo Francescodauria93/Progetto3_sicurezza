@@ -31,7 +31,9 @@ import javax.crypto.SecretKey;
  */
 public class TSA {
 
+    private Map<String, String> mapTimeStamp = new HashMap<String, String>();
     private int timeframenumber = 1;
+    private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
 
     public void merkelTree() throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
 
@@ -51,17 +53,17 @@ public class TSA {
         List<byte[]> levelFour = new ArrayList<byte[]>();    // livello di 4 elementi
         List<byte[]> levelTwo = new ArrayList<byte[]>();   //livello di 2 elementi
         byte[] hashRoot = new byte[32]; // root Hash
-        Map<String, String> mapTimeStamp = new HashMap<String, String>();
-        Cipher c=cipherUtility.getIstanceAsimmetricCipher("RSA","CBC", "PKCS1Padding");
+
+        Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "CBC", "PKCS1Padding");
         PrivateKey tsaPK = null;
         // qui costruisco hlist e hID
         for (File child : directoryListing) {
             readByteEnc = fileUtility.loadFile(child.toString()); // leggo il file
-            byte[] readByte=cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
-            byte[] h_tmp=Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
-            String currID=Arrays.copyOfRange(readByte, 32, readByte.length).toString();
+            byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
+            byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
+            String currID = Arrays.copyOfRange(readByte, 32, readByte.length).toString();
             hID.add(currID);
-            String timeStamp=fileUtility.getTimeFromServer("GMT"); //prendo il timeStamp
+            String timeStamp = fileUtility.getTimeFromServer("GMT"); //prendo il timeStamp
             mapTimeStamp.put(currID, timeStamp);
             hlist.add(fileUtility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
         }
@@ -84,11 +86,24 @@ public class TSA {
         byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
         this.sendPublicSuperHash(newSuperHash); // la pubblico
         this.sendPublicHash(hashRoot);   // pubblico anche l'hash
+
+        this.createPath(hlist, levelFour, levelTwo, hID);
+
         
-        /* cose da fare : costruire il dizionario ID:etichetta , controllare se user è
-        coerente come si caricano da waitingfile */
-        
-        this.timeframenumber+=1; // aggiorno il timeframe
+        this.timeframenumber += 1; // aggiorno il timeframe
+    }
+
+    private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1, List<String> listID) throws IOException {
+        byte dx = "d".getBytes()[0];
+        byte sx = "s".getBytes()[0];
+        this.allMapPath.put(listID.get(0), fileUtility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
+        this.allMapPath.put(listID.get(1), fileUtility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
+        this.allMapPath.put(listID.get(2), fileUtility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
+        this.allMapPath.put(listID.get(3), fileUtility.concatMerkleByte(sx, leaf.get(2), sx, l2.get(0), dx, l1.get(1)));
+        this.allMapPath.put(listID.get(4), fileUtility.concatMerkleByte(dx, leaf.get(5), dx, l2.get(3), sx, l1.get(0)));
+        this.allMapPath.put(listID.get(5), fileUtility.concatMerkleByte(sx, leaf.get(4), dx, l2.get(3), sx, l1.get(0)));
+        this.allMapPath.put(listID.get(6), fileUtility.concatMerkleByte(dx, leaf.get(7), sx, l2.get(2), sx, l1.get(0)));
+        this.allMapPath.put(listID.get(7), fileUtility.concatMerkleByte(sx, leaf.get(6), sx, l2.get(2), sx, l1.get(0)));
     }
 
     private void sendPublicHash(byte[] hash) throws IOException {
@@ -123,9 +138,9 @@ public class TSA {
 
         int i = 0;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        
+
         while (i < fNumber) {
-            
+
             random.nextBytes(bytes);
             sha.update(bytes);
             outputStream.write(sha.digest());
