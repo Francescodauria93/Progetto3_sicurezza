@@ -12,14 +12,18 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 
 /**
  *
@@ -29,7 +33,7 @@ public class TSA {
 
     private int timeframenumber = 1;
 
-    public void merkelTree() throws IOException, NoSuchAlgorithmException {
+    public void merkelTree() throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
@@ -41,16 +45,19 @@ public class TSA {
             this.fillWaiting();
         }
 
-        byte[] readByte = null; //byte letti temporanei
+        byte[] readByteEnc = null; //byte letti temporanei
         List<String> hID = new ArrayList<String>(); // lista di id
         List<byte[]> hlist = new ArrayList<byte[]>();    //lista di h
         List<byte[]> levelFour = new ArrayList<byte[]>();    // livello di 4 elementi
         List<byte[]> levelTwo = new ArrayList<byte[]>();   //livello di 2 elementi
         byte[] hashRoot = new byte[32]; // root Hash
         Map<String, String> mapTimeStamp = new HashMap<String, String>();
+        Cipher c=cipherUtility.getIstanceAsimmetricCipher("RSA","CBC", "PKCS1Padding");
+        PrivateKey tsaPK = null;
         // qui costruisco hlist e hID
         for (File child : directoryListing) {
-            readByte = fileUtility.loadFile(child.toString()); // leggo il file
+            readByteEnc = fileUtility.loadFile(child.toString()); // leggo il file
+            byte[] readByte=cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
             byte[] h_tmp=Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID=Arrays.copyOfRange(readByte, 32, readByte.length).toString();
             hID.add(currID);

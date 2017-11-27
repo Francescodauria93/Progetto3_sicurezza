@@ -13,6 +13,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import javax.crypto.*;
 
@@ -31,18 +32,20 @@ public class User {
         byte[] hashFileReaded = sha.digest();
         //creo un ByteArrayOutputStream per concatenare gli array di byte
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        
-        
         outputStream.write(hashFileReaded);
         outputStream.write(myID);
         byte completeDocument[] = outputStream.toByteArray();
         //chiudo lo stram e scrivo l'array di byte appena concatenato
         outputStream.close();
+        //creo istanza cifrario RSA
+        PublicKey publicTSA = null;
+        Cipher c=cipherUtility.getIstanceAsimmetricCipher("RSA","CBC", "PKCS1Padding");
+        byte[] DocumentEncrypted=cipherUtility.asimmetricEncode(c, completeDocument, publicTSA);
         //salvo tutto in documento_ID_user.toTsa
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         String destEncrypted = s + "/folderWaitingFiles/documento_"+(new String(myID))+".toTsa";
-        fileUtility.writeFile(destEncrypted, completeDocument);
+        fileUtility.writeFile(destEncrypted, DocumentEncrypted);
         
     }
 }
