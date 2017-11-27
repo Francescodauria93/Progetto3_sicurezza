@@ -35,46 +35,11 @@ public class Progetto3 {
      */
 
     public static void main(String[] args) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, InvalidAlgorithmParameterException, SignatureException {
-        
-        String userName="gianni";
-        String keyPath = Paths.get("src/progetto3").toAbsolutePath().toString()+"/wallet/"+userName+".w";
-        String passKR = "dpalex";
-        //JFileChooser fileChooser = new JFileChooser();
-        User u=new User();
-        //Wallet myKR = new Wallet();
-        
-        //System.out.print(keyPath);
-        //myKR.loadWallet(keyPath, passKR);
-        String filepath = "/Users/dp.alex/Documents/9.jpg";
-        //fileChoice("Scegli il file da marcare:", fileChooser, false);   
-        u.sendDocumentToTSA(filepath, "gianni");
+    //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
+    //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
+  
     }
     
-    public static String fileChoice(String titolo, JFileChooser fileChooser, boolean wallet) {
-
-        if (wallet) {
-            Path currentRelativePath = Paths.get("src/progetto3");
-            String s = currentRelativePath.toAbsolutePath().toString();
-            s = s + "/wallet";
-            fileChooser.setCurrentDirectory(new File(s));
-        }
-        //fileChooser.setCurrentDirectory(new File("));
-        //fileChooser.setSelectedFile(new File("README.html"));
-
-        String filename = "";
-        fileChooser.setDialogTitle(titolo);
-        int result = fileChooser.showOpenDialog(null);
-
-        if (result == JFileChooser.APPROVE_OPTION) {
-            filename = fileChooser.getSelectedFile().getPath();
-
-        } else if (result == JFileChooser.CANCEL_OPTION) {
-            JOptionPane.showMessageDialog(null, "You selected nothing.");
-        } else if (result == JFileChooser.ERROR_OPTION) {
-            JOptionPane.showMessageDialog(null, "An error occurred.");
-        }
-
-        return filename;
-    }
+    
     
 }
