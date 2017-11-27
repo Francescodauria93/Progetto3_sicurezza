@@ -61,5 +61,20 @@ public class fileUtility implements Serializable {
         outputStream.close();
         return c;
     }
+    
+        public static byte[] concatMerkleByte(byte a, byte[] b,byte c, byte[] d,byte e, byte[] f) throws IOException {
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(a);
+        outputStream.write(b);
+        outputStream.write(c);
+        outputStream.write(d);
+        outputStream.write(e);
+        outputStream.write(f);
+        
+        byte tmp[] = outputStream.toByteArray();
+        outputStream.close();
+        return tmp;
+    }
 
 }

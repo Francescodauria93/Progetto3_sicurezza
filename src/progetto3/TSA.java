@@ -18,12 +18,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
 
 /**
  *
