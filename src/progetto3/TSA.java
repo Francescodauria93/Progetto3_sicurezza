@@ -16,7 +16,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -44,13 +47,16 @@ public class TSA {
         List<byte[]> levelFour = new ArrayList<byte[]>();    // livello di 4 elementi
         List<byte[]> levelTwo = new ArrayList<byte[]>();   //livello di 2 elementi
         byte[] hashRoot = new byte[32]; // root Hash
-
+        Map<String, String> mapTimeStamp = new HashMap<String, String>();
         // qui costruisco hlist e hID
         for (File child : directoryListing) {
             readByte = fileUtility.loadFile(child.toString()); // leggo il file
-            int len = (int) Arrays.copyOfRange(readByte, 0, 1)[0];
-            hID.add(Arrays.copyOfRange(readByte, 1, len + 1).toString());
-            hlist.add(Arrays.copyOfRange(readByte, len + 1, readByte.length));
+            byte[] h_tmp=Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
+            String currID=Arrays.copyOfRange(readByte, 32, readByte.length).toString();
+            hID.add(currID);
+            String timeStamp=fileUtility.getTimeFromServer("GMT"); //prendo il timeStamp
+            mapTimeStamp.put(currID, timeStamp);
+            hlist.add(fileUtility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
         }
 
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
@@ -115,10 +121,8 @@ public class TSA {
             
             random.nextBytes(bytes);
             sha.update(bytes);
-            
-            outputStream.write(id.length);
-            outputStream.write(id);
             outputStream.write(sha.digest());
+            outputStream.write(id);
             byte completeDocument[] = outputStream.toByteArray();
             outputStream.flush();
             String path = myDirectoryPath + "/fakeID" + i + ".toTSA";
@@ -126,7 +130,7 @@ public class TSA {
             i += 1;
 
         }
-        outputStream.flush();
+        outputStream.close(); //chiudo lo stream dopo aver inviato tutto
 
     }
 

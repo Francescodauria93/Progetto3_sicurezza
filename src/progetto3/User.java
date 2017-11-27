@@ -31,9 +31,10 @@ public class User {
         byte[] hashFileReaded = sha.digest();
         //creo un ByteArrayOutputStream per concatenare gli array di byte
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(myID.length);
-        outputStream.write(myID);
+        
+        
         outputStream.write(hashFileReaded);
+        outputStream.write(myID);
         byte completeDocument[] = outputStream.toByteArray();
         //chiudo lo stram e scrivo l'array di byte appena concatenato
         outputStream.close();
