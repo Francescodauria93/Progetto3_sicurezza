@@ -12,6 +12,12 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
@@ -20,7 +26,7 @@ import java.util.TimeZone;
  *
  * @author dp.alex
  */
-public class fileUtility implements Serializable {
+public class utility implements Serializable {
 
     public static String nameFile(String sourcePath) {
         File file = new File(sourcePath);
@@ -75,6 +81,26 @@ public class fileUtility implements Serializable {
         byte tmp[] = outputStream.toByteArray();
         outputStream.close();
         return tmp;
+    }
+        
+    public static byte[] sign(byte[] textToSign, PrivateKey userKeyPr, String alg) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
+        if(alg.matches("SHA1withDSA") || alg.matches("SHA224withDSA") || alg.matches("SHA256withDSA")){
+            Signature dsa = Signature.getInstance(alg);
+            dsa.initSign(userKeyPr);
+            dsa.update(textToSign);
+            return dsa.sign();
+        }
+        else{
+            return null;
+        }
+        
+    }
+    
+    public static boolean verifySign(byte[] signedText, byte[] firma, PublicKey userKeyPub, String padding) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
+        Signature dsa = Signature.getInstance(padding);
+        dsa.initVerify(userKeyPub);
+	dsa.update(signedText);
+	return dsa.verify(firma);
     }
 
 }

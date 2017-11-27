@@ -26,7 +26,7 @@ public class User {
     public void sendDocumentToTSA(String pathFile,String id) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException{
        
         byte[] myID= id.getBytes();
-        byte[] fileReaded=fileUtility.loadFile(pathFile);
+        byte[] fileReaded=utility.loadFile(pathFile);
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         sha.update(fileReaded);
         byte[] hashFileReaded = sha.digest();
@@ -45,7 +45,7 @@ public class User {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         String destEncrypted = s + "/folderWaitingFiles/documento_"+(new String(myID))+".toTsa";
-        fileUtility.writeFile(destEncrypted, DocumentEncrypted);
+        utility.writeFile(destEncrypted, DocumentEncrypted);
         
     }
 }

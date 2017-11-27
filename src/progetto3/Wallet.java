@@ -214,7 +214,7 @@ public class Wallet implements Serializable{
 
         Wallet w = new Wallet();
         byte cipherFile[];
-        cipherFile = fileUtility.loadFile(path);
+        cipherFile = utility.loadFile(path);
         
         for(int i=0 ;i<this.salt.length;i++){
             this.salt[i]=cipherFile[i];
@@ -273,7 +273,7 @@ public class Wallet implements Serializable{
 
         byte complete[] = outputStream.toByteArray();
         outputStream.close();
-        fileUtility.writeFile(path+label+".w",complete );
+        utility.writeFile(path+label+".w",complete );
    
 
     }
