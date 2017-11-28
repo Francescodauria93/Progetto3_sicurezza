@@ -32,17 +32,20 @@ import javax.crypto.Cipher;
 public class TSA {
 
     private Map<String, String> mapTimeStamp = new HashMap<String, String>();
+    private Map<String,String> mapNameFile=new HashMap<String, String>();
     private int timeframenumber = 1;
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
     
     public void merkelTree() throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
 
+        String idTsa="";
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderWaitingFiles";
+        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
         File dir = new File(myDirectoryPath);
         File[] directoryListing = dir.listFiles();
+        
 
         if (directoryListing.length != 8) { // riempio
             this.fillWaiting();
@@ -59,6 +62,7 @@ public class TSA {
         PrivateKey tsaPK = null;
         // qui costruisco hlist e hID
         for (File child : directoryListing) {
+            
             readByteEnc = utility.loadFile(child.toString()); // leggo il file
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
@@ -67,6 +71,8 @@ public class TSA {
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
             hlist.add(utility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
+            this.mapNameFile.put(currID, child.getName());
+
         }
 
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
@@ -125,9 +131,10 @@ public class TSA {
     }
 
     private void fillWaiting() throws NoSuchAlgorithmException, IOException {
+        String idTsa="";
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderWaitingFiles";
+        String myDirectoryPath = s + "/inbox_"+idTsa+"/";
         File dir = new File(myDirectoryPath);
         File[] directoryListing = dir.listFiles();
         int fNumber = 8 - directoryListing.length;// quanti da aggiungere
@@ -148,7 +155,7 @@ public class TSA {
             outputStream.write(id);
             byte completeDocument[] = outputStream.toByteArray();
             outputStream.flush();
-            String path = myDirectoryPath + "/fakeID" + i + ".toTSA";
+            String path = myDirectoryPath + "/fakeID" + i;
             utility.writeFile(path, completeDocument);
             i += 1;
 
@@ -204,7 +211,8 @@ public class TSA {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     
     String myDirectoryPath = s + "/folderPublicSuperHashValue";
-    String docWithTimeStampPath = s + "/folderdocWithTimeStamp";
+    String docWithTimeStampPath = s + "/inboxUsers/";
+    
     byte[] sh=utility.loadFile(myDirectoryPath + "/superhash" + this.timeframenumber + ".shv");
     byte[] preSh=utility.loadFile(myDirectoryPath + "/superhash" + (this.timeframenumber-1) + ".shv");
     
@@ -219,7 +227,7 @@ public class TSA {
              outputStream.write(preSh);
              outputStream.write(utility.sign(outputStream.toByteArray(), privateKeyTsa, typeSign));
             byte[]  tmp= outputStream.toByteArray();
-            utility.writeFile(myDirectoryPath+ "/docWithTimeStamp-frame#" + this.timeframenumber +"-"+this.hID.get(i), tmp);
+            utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.mapNameFile.get(this.hID.get(i)), tmp);
             outputStream.flush();
             
         
