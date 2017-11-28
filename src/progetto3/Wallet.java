@@ -277,8 +277,6 @@ public class Wallet implements Serializable{
    
 
     }
-    public String getID(){
-        return "";
-    }
+    
 
 }
