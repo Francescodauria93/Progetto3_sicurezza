@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -101,6 +102,29 @@ public class utility implements Serializable {
         dsa.initVerify(userKeyPub);
 	dsa.update(signedText);
 	return dsa.verify(firma);
+    }
+    
+    public static String getNameFromHash(String pathFile) throws IOException, NoSuchAlgorithmException{
+        MessageDigest sha = MessageDigest.getInstance("SHA-256");
+        sha.update(loadFile(pathFile));
+        return sha.digest().toString();
+    }
+    
+        //funzione che ritorna un' array di stringhe rappresentanti i campi dell'intestazione
+    public static String[] intestToStringArray(byte[] intest,int elem) {
+        String intestString = new String(intest);
+        String[] intestVect = new String[elem];
+        int j = 0;
+        int k = 0;
+        for (int i = 0; i < intestString.length(); i++) {
+            if (intestString.charAt(i) == '/') {
+                intestVect[k] = intestString.substring(j, i);
+                j = i + 1;
+                k++;
+            }
+        }
+
+        return intestVect;
     }
 
 }
