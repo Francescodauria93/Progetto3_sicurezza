@@ -32,7 +32,7 @@ import javax.crypto.Cipher;
 public class TSA {
 
     private Map<String, String> mapTimeStamp = new HashMap<String, String>();
-    private Map<String,String> mapNameFile=new HashMap<String, String>();
+    private List<String> listNameFile=new ArrayList<String>();
     private int timeframenumber = 1;
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
@@ -71,7 +71,7 @@ public class TSA {
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
             hlist.add(utility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
-            this.mapNameFile.put(currID, child.getName());
+            this.listNameFile.add(child.getName());
 
         }
 
@@ -101,8 +101,8 @@ public class TSA {
     }
 
     private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1) throws IOException {
-        byte dx = "d".getBytes()[0];
-        byte sx = "s".getBytes()[0];
+        byte dx = 0;
+        byte sx = 1;
         this.allMapPath.put(this.hID.get(0), utility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(1), utility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(2), utility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
@@ -227,10 +227,9 @@ public class TSA {
              outputStream.write(preSh);
              outputStream.write(utility.sign(outputStream.toByteArray(), privateKeyTsa, typeSign));
             byte[]  tmp= outputStream.toByteArray();
-            utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.mapNameFile.get(this.hID.get(i)), tmp);
+            utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.listNameFile.get(i), tmp);
             outputStream.flush();
-            
-        
+
         }
         }
     outputStream.close();

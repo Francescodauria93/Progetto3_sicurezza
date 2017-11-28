@@ -97,11 +97,11 @@ public class utility implements Serializable {
         
     }
     
-    public static boolean verifySign(byte[] signedText, byte[] firma, PublicKey userKeyPub, String padding) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
-        Signature dsa = Signature.getInstance(padding);
+    public static boolean verifySign(byte[] signedText, byte[] sign, PublicKey userKeyPub, String alg) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
+        Signature dsa = Signature.getInstance(alg);
         dsa.initVerify(userKeyPub);
 	dsa.update(signedText);
-	return dsa.verify(firma);
+	return dsa.verify(sign);
     }
     
     public static String getNameFromHash(String pathFile) throws IOException, NoSuchAlgorithmException{
@@ -125,6 +125,19 @@ public class utility implements Serializable {
         }
 
         return intestVect;
+    }
+
+    public static byte[] arrayToVerify(byte[] intest, byte[] hi, byte[] sequenceMerkle, byte[] sh, byte[] preSh) throws IOException {
+        ByteArrayOutputStream toVerifyStream = new ByteArrayOutputStream();
+        toVerifyStream.write(intest.length);
+        toVerifyStream.write(intest);
+        toVerifyStream.write(hi);
+        toVerifyStream.write(sequenceMerkle);
+        toVerifyStream.write(sh); 
+        toVerifyStream.write(preSh);
+        byte[] toVerify = toVerifyStream.toByteArray();
+        toVerifyStream.close();
+        return toVerify;
     }
 
 }

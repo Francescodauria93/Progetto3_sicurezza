@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import javax.crypto.*;
@@ -27,7 +28,7 @@ import javax.crypto.*;
  */
 public class User {
 
-    public void sendDocumentToTSA(String pathFile, String id,String idTsa) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public void sendDocumentToTSA(String pathFile, String id, String idTsa) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
 
         byte[] myID = id.getBytes();
         byte[] fileReaded = utility.loadFile(pathFile);
@@ -50,53 +51,89 @@ public class User {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
 
-        String destEncrypted = s + "/inboxTSA_"+idTsa+"/" + nameFile;
+        String destEncrypted = s + "/inboxTSA_" + idTsa + "/" + nameFile;
         utility.writeFile(destEncrypted, DocumentEncrypted);
 
     }
 
-    public void checkValidity(boolean online, String idUser, PublicKey tsaKey, String pathFile) throws IOException, NoSuchAlgorithmException {
+    public boolean checkValidity(boolean online, String idUser, PublicKey tsaKey, String pathFile) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myInboxPath = s + "/inbox_" + idUser+"/";
+        String myInboxPath = s + "/inbox_" + idUser + "/";
         String shPath = s + "/folderPublicSuperHashValue";
-        byte[] myDoc = null;
-        
-        myDoc = utility.loadFile(myInboxPath+utility.getNameFromHash(pathFile));
+        boolean check = false;
+        byte[] myDoc = utility.loadFile(myInboxPath + utility.getNameFromHash(pathFile));
         //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
-    //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
+        //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
         int size_intest = (int) myDoc[0];
-        byte[] intest = new byte[size_intest];
-        byte[] hi = null;
-        byte[] sequenceMerkle = null;
-        byte[] sh = null;
-        byte[] preSh = null;
-        byte[] sign = null;
-        //carico l'intestazione nel suo array di byte 
-        intest = Arrays.copyOfRange(myDoc, 1, size_intest + 1);
-        //metto i singoli campi dell'intestazione in un array di stringe per poter manipolare i dati
-        String[] intestVect = utility.intestToStringArray(intest,5);
-        hi=Arrays.copyOfRange(myDoc, size_intest + 1, size_intest +1+ 32);
-        sequenceMerkle =Arrays.copyOfRange(myDoc, size_intest + 1+32, size_intest +1+ 32+99);
-        sh=Arrays.copyOfRange(myDoc, size_intest +1+ 32+99, size_intest +1+ 32+99+32);
-        preSh=Arrays.copyOfRange(myDoc, size_intest +1+ 32+99+32, size_intest +1+ 32+99+32+32);
-        sign=preSh=Arrays.copyOfRange(myDoc, size_intest +1+ 32+99+32+32, myDoc.length);
-        
+        byte[] intest = Arrays.copyOfRange(myDoc, 1, size_intest + 1);
+        String[] intestVect = utility.intestToStringArray(intest, 5);
+        byte[] hi = Arrays.copyOfRange(myDoc, size_intest + 1, size_intest + 1 + 32);
+        byte[] sequenceMerkle = Arrays.copyOfRange(myDoc, size_intest + 1 + 32, size_intest + 1 + 32 + 99);
+        byte[] sh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99, size_intest + 1 + 32 + 99 + 32);
+        byte[] preSh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32, size_intest + 1 + 32 + 99 + 32 + 32);
+        byte[] sign = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32 + 32, myDoc.length);
+        byte[] arrayToVerify = utility.arrayToVerify(intest, hi, sequenceMerkle, sh, preSh);
+        byte[] rootHash = this.constructRoot(hi, sequenceMerkle);
+        MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
+
+        if (utility.verifySign(arrayToVerify, sign, tsaKey, intestVect[3])) {
+            if (online) {
+                check = checkOnline();
+            } else {
+                sha.update(utility.concatByte(preSh, rootHash));
+                if (sh == sha.digest()) {
+                    check = true;
+                }
+
+            }
+        } else {
+            check = false;
+        }
+        return check;
 
     }
 
-    private void checkOffline() {
+    private byte[] constructRoot(byte[] hi, byte[] sequence) throws IOException, NoSuchAlgorithmException {
 
+        byte firstFusion = sequence[0];
+        byte[] brotherLeaf = Arrays.copyOfRange(sequence, 1, 33);
+        byte secondFusion = sequence[33];
+        byte[] firstBrother = Arrays.copyOfRange(sequence, 34, 67);
+        byte thirdFusion = sequence[67];
+        byte[] lastBrother = Arrays.copyOfRange(sequence, 68, sequence.length);
+        byte[] root = null;
+        MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
+
+        if (firstFusion == 0) {
+            sha.update(utility.concatByte(hi, brotherLeaf));
+            root = sha.digest();
+        } else {
+            sha.update(utility.concatByte(brotherLeaf, hi));
+            root = sha.digest();
+        }
+        if (secondFusion == 0) {
+            sha.update(utility.concatByte(root, firstBrother));
+            root = sha.digest();
+        } else {
+            sha.update(utility.concatByte(firstBrother, root));
+            root = sha.digest();
+        }
+        if (thirdFusion == 0) {
+            sha.update(utility.concatByte(root, lastBrother));
+            root = sha.digest();
+        } else {
+            sha.update(utility.concatByte(lastBrother, root));
+            root = sha.digest();
+        }
+        return root;
     }
 
-    private void checkOnline() throws IOException {
 
-        //File dir = new File(myInboxPath);
-        //String[] listFileName=dir.list();
-        //timeframenumber =Integer.parseInt(listFileName[i].substring(listFileName[i].indexOf("#") + 1, listFileName[i].indexOf("-")));
-        //sh=utility.loadFile(shPath + "/superhash" + timeframenumber + ".shv");
-        //preSh=utility.loadFile(shPath + "/superhash" + (timeframenumber-1) + ".shv");
+
+    private boolean checkOnline() throws IOException {
+
+        return true;
     }
-    
-    
+
 }
