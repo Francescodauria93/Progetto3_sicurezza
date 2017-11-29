@@ -34,12 +34,12 @@ import javax.crypto.Cipher;
 public class TSA {
 
     private Map<String, String> mapTimeStamp = new HashMap<String, String>();
-    private List<String> listNameFile=new ArrayList<String>();
     private int timeframenumber = 1;
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
-    
-    public void merkelTree(String idTsa,PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
+    private String idTsa = "Tsa1";
+   
+    public void merkelTree(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
 
         
         Path currentRelativePath = Paths.get("src/progetto3");
@@ -55,11 +55,7 @@ public class TSA {
         }
         });
 
-        if (directoryListing.length != 8) { // riempio
-            this.fillWaiting(idTsa,tsaPub);
-        }
-
-        
+ 
         byte[] readByteEnc = null; //byte letti temporanei
         
         List<byte[]> hlist = new ArrayList<byte[]>();    //lista di h
@@ -80,11 +76,20 @@ public class TSA {
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
             hlist.add(utility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
-            this.listNameFile.add(child.getName());
+      
 
         }
+        
+        if (directoryListing.length != 8) { // riempio
+            List<byte[]> fillNode = new ArrayList<byte[]>();
+            fillNode = this.fillWaiting(idTsa);
+            
+            for(byte[] child : fillNode){
+            hlist.add(child);//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
+            this.hID.add("fakeID"); 
+            }
+        }
 
-       
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
 
         for (int i = 0; i < 8; i += 2) { // costruisco il terzo livello
@@ -104,15 +109,16 @@ public class TSA {
         this.sendPublicSuperHash(newSuperHash); // la pubblico
         this.sendPublicHash(hashRoot);   // pubblico anche l'hash
 
-        this.createPath(hlist, levelFour, levelTwo);
+        this.createPath(hlist, levelFour, levelTwo );
         this.sendAll(hlist);
         
         this.timeframenumber += 1; // aggiorno il timeframe
     }
 
-    private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1) throws IOException {
+    private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1 ) throws IOException {
         byte dx = 0;
         byte sx = 1;
+    
         this.allMapPath.put(this.hID.get(0), utility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(1), utility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(2), utility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
@@ -123,28 +129,34 @@ public class TSA {
         this.allMapPath.put(this.hID.get(7), utility.concatMerkleByte(sx, leaf.get(6), sx, l2.get(2), sx, l1.get(0)));
     }
 
-    private void sendPublicHash(byte[] hash) throws IOException {
+    private void sendPublicHash(byte[] hash) throws IOException {  //c
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         String myDirectoryPath = s + "/folderPublicRootHashValue";
+        
+        byte[] prec =utility.loadFile(myDirectoryPath);
         utility.writeFile(myDirectoryPath + "/hash" + this.timeframenumber + ".hv", hash);
 
     }
 
-    private void sendPublicSuperHash(byte[] superHash) throws IOException {
+    private void sendPublicSuperHash(byte[] superHash) throws IOException { //c
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderPublicSuperHashValue";
-        utility.writeFile(myDirectoryPath + "/superhash" + this.timeframenumber + ".shv", superHash);
+        String path = s + "/PublicSuperHash";
+        String name  = "SH_TF"+this.timeframenumber+"_"+utility.get
+
+   
+        
     }
 
-    private void fillWaiting(String idTsa,PublicKey publicTSA) throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException {
+    private List<byte[]> fillWaiting(String idTsa) throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException {
        
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        
         
         File dir = new File(myDirectoryPath);
         //File[] directoryListing = dir.listFiles();
@@ -153,10 +165,11 @@ public class TSA {
         public boolean accept(File dir, String name) {
             return !name.equals(".DS_Store");
         }
-        });
+        }); 
         
         
         int fNumber = 8 - directoryListing.length;// quanti da aggiungere
+        List<byte[]> node = new ArrayList<byte[]>(); 
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
@@ -165,7 +178,7 @@ public class TSA {
 
         int i = 0;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
+
         while (i < fNumber) {
 
             random.nextBytes(bytes);
@@ -174,34 +187,35 @@ Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding"
             outputStream.write(id);
             byte completeDocument[] = outputStream.toByteArray();
             outputStream.flush();
-            String path = myDirectoryPath + "/fakeID" + i;
-            
-            byte[] DocumentEncrypted = cipherUtility.asimmetricEncode(c, completeDocument, publicTSA);
-            utility.writeFile(path, completeDocument);
+            node.add(completeDocument);
             i += 1;
 
         }
         outputStream.close(); //chiudo lo stream dopo aver inviato tutto
-
+        return node;
+   
     }
 
-    private void startSuperHash() throws NoSuchAlgorithmException, IOException {
+    private void startSuperHash() throws NoSuchAlgorithmException, IOException { //cambiare
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderPublicSuperHashValue";
+        String myDirectoryPath = s + "/PublicSuperHash";
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
         random.nextBytes(bytes);
-
+        HashMap<String,byte[]> m = new HashMap<String,byte[]>();
+        
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(bytes);
-        utility.writeFile(myDirectoryPath + "/superhash0.shv", sha.digest());
+        
+     
+        utility.writeFile(myDirectoryPath + "/superhash0.shv", );
 
     }
 
-    private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException {
+    private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException { //cambiare
 
         int currentTimeFrame = this.timeframenumber;
         Path currentRelativePath = Paths.get("src/progetto3");
@@ -248,7 +262,7 @@ Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding"
              outputStream.write(preSh);
              outputStream.write(utility.sign(outputStream.toByteArray(), privateKeyTsa, typeSign));
             byte[]  tmp= outputStream.toByteArray();
-            utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.listNameFile.get(i), tmp);
+          //  utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.listNameFile.get(i), tmp);
             outputStream.flush();
 
         }

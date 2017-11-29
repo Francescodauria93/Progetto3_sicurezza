@@ -5,8 +5,11 @@
  */
 package progetto3;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -21,6 +24,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Scanner;
 import java.util.TimeZone;
 
 /**
@@ -139,5 +143,23 @@ public class utility implements Serializable {
         toVerifyStream.close();
         return toVerify;
     }
+    
+    public static void writeTxt(String path , String Text) throws IOException{
+        BufferedWriter w = new BufferedWriter(new FileWriter(path));
+        w.write(Text);
+        w.close();
+    }
+    
+    public static String readTxt(String path) throws FileNotFoundException{
+        
+        Scanner Input = new Scanner(new File(path));
+        String Text = "";
+        while (Input.hasNextLine()) {
+            Text += Input.nextLine();
+        }
+
+        return Text;
+    }
+    
 
 }

@@ -56,7 +56,7 @@ public class User {
     }
 
     public boolean checkValidity(boolean online, String idUser, PublicKey tsaKey, String pathFile) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Path currentRelativePath = Paths.get("src/progetto3");
+        Path currentRelativePath = Paths.get("src/progetto3"); //cambiare solo il salvataggio----
         String s = currentRelativePath.toAbsolutePath().toString();
         String myInboxPath = s + "/inbox_" + idUser + "/";
         String shPath = s + "/folderPublicSuperHashValue";
@@ -77,7 +77,7 @@ public class User {
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(utility.concatByte(preSh, rootHash));
         if ((utility.verifySign(arrayToVerify, sign, tsaKey, intestVect[3]))&&sh == sha.digest()) {
-            check=true;
+            check=true; //sistemare con array copy
         }
         return check;
 
@@ -112,13 +112,13 @@ public class User {
             sha.update(utility.concatByte(root, lastBrother));
             root = sha.digest();
         } else {
-            sha.update(utility.concatByte(lastBrother, root));
-            root = sha.digest();
+            sha.update(utility.concatByte(lastBrother, root)); //ok solo un pò il codice
+            root = sha.digest();   
         }
         return root;
     }
 
-    private boolean checkOnline() throws IOException {
+    private boolean checkChain() throws IOException {
         return true;
     }
 

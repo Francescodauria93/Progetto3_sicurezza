@@ -46,7 +46,7 @@ public class TestKeyRing {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         s = s + "/wallet";
-        List<KeyRing> lc = new ArrayList<KeyRing>();
+        /*List<KeyRing> lc = new ArrayList<KeyRing>();
         KeyRing c = new KeyRing();
         KeyRing c2 = new KeyRing();
         KeyPairGenerator gRsa = KeyPairGenerator.getInstance("RSA");
@@ -107,7 +107,15 @@ public class TestKeyRing {
             
 
         }
-      
+      */
+        
+        KeyRing c3 = new KeyRing();
+        KeyRing c4 = new KeyRing();
+        
+        c3.loadKeyRing(s+"/ciccio.w", "ciccio"+"pass");
+        c4.loadKeyRing(s+"/fabrizio.w", "fabrizio"+"pass");
+        
+        
 
         
 
