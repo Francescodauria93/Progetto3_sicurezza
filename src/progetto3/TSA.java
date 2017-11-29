@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
@@ -38,8 +39,31 @@ public class TSA {
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
     private String idTsa = "Tsa1";
+    
+    public void start(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException{
+        //semplificazione del tempo che intercorre tra un timeframe ed un altro
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        File dir = new File(myDirectoryPath);
+        File[] directoryListing = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
+        
+
+        if(directoryListing.length>8){  //se ci sono più di 8 file in coda fai anche gli altri
+            this.merkelTree(tsaPK, tsaPub);
+            this.start(tsaPK, tsaPub);
+        }else{
+            this.merkelTree(tsaPK, tsaPub);
+        }
+
+    }
    
-    public void merkelTree(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
+    public void merkelTree(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException {
 
         
         Path currentRelativePath = Paths.get("src/progetto3");
@@ -48,14 +72,24 @@ public class TSA {
         File dir = new File(myDirectoryPath);
         
         //File[] directoryListing = dir.listFiles();
-        File[] directoryListing = dir.listFiles(new FilenameFilter() {
+        String[] directoryListing = dir.list(new FilenameFilter() {
         @Override
         public boolean accept(File dir, String name) {
             return !name.equals(".DS_Store");
         }
         });
-
- 
+        
+        List<String> filelist ;  // prendo in cosiderazione solo 8 elementi
+        boolean fill = false;    // controllo se fill
+        
+        if(directoryListing.length>=8){
+        filelist = Arrays.asList(directoryListing).subList(0, 8);
+        }else{
+            filelist = Arrays.asList(directoryListing).subList(0, directoryListing.length);
+            fill=true;
+        }
+        
+       
         byte[] readByteEnc = null; //byte letti temporanei
         
         List<byte[]> hlist = new ArrayList<byte[]>();    //lista di h
@@ -66,9 +100,9 @@ public class TSA {
         Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
         
         // qui costruisco hlist e hID
-        for (File child : directoryListing) {
+        for (String path : filelist) {
             
-            readByteEnc = utility.loadFile(child.getPath()); // leggo il file
+            readByteEnc = utility.loadFile(path); // leggo il file
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
@@ -76,11 +110,13 @@ public class TSA {
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
             hlist.add(utility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
-      
+            
+            File f = new File(path);
+            Files.delete(f.toPath()); //elimino l'elelemento servito
 
         }
         
-        if (directoryListing.length != 8) { // riempio
+        if (fill) { // riempio
             List<byte[]> fillNode = new ArrayList<byte[]>();
             fillNode = this.fillWaiting(idTsa);
             
@@ -133,20 +169,22 @@ public class TSA {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderPublicRootHashValue";
+        String myDirectoryPath = s + "/PublicHashRoot";
         
         byte[] prec =utility.loadFile(myDirectoryPath);
         utility.writeFile(myDirectoryPath + "/hash" + this.timeframenumber + ".hv", hash);
 
     }
 
-    private void sendPublicSuperHash(byte[] superHash) throws IOException { //c
+    private void sendPublicSuperHash(byte[] superHash) throws IOException, ClassNotFoundException { //c
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/PublicSuperHash/";
-        String journalText=utility.readTxt(myDirectoryPath+"PublicSHJournal.txt");
-        journalText += superHash.toString()+ "\t"+this.timeframenumber+"\t"+utility.getTimeFromServer("GMT")+"\n";
+        String path = s + "/PublicSuperHash";
+        Journal journal = new Journal();
+        journal.load(path+"/PublicSH.j");
+        journal.byteList.add(superHash);
+        journal.save(path, "PublicSH");
         //String lines[] = utility.readTxt(myDirectoryPath+"PublicSHJournal.txt").split("\\r?\\n");
   
     }
@@ -200,38 +238,48 @@ public class TSA {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/PublicSuperHash/";
+        String path = s + "/PublicSuperHash";
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
         random.nextBytes(bytes);
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(bytes);
+        
+        Journal journal = new Journal();
+        journal.byteList.add(sha.digest());
     
-        String txt = sha.digest().toString() + "\t"+this.timeframenumber+"\t"+utility.getTimeFromServer("GMT")+"\n";
-        utility.writeTxt(myDirectoryPath+"PublicSHJournal.txt", txt);
+        journal.save(path,"PublicSH");
  
     }
 
-    private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException { //cambiare
+    private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException, ClassNotFoundException { //cambiare
 
         int currentTimeFrame = this.timeframenumber;
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/folderPublicSuperHashValue";
-        File dir = new File(myDirectoryPath);
-        File[] directoryListing = dir.listFiles();
+        String path = s + "/PublicSuperHash";
+        File dir = new File(path);
+        File[] directoryListing = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
 
         if (directoryListing.length == 0) {
             this.startSuperHash();
         }
+        
+        Journal journal = new Journal();
+        journal.load(path+"/PublicSH.j");
+        return journal.byteList.get(currentTimeFrame - 1);
+        
 
-        byte[] preSH = utility.loadFile(myDirectoryPath + "/superhash" + (currentTimeFrame - 1) + ".shv");
-        return preSH;
 
     }
     
-    private void sendAll(List<byte[]> hlist) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException{
+    private void sendAll(List<byte[]> hlist) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, ClassNotFoundException{
     //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
     //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
     
@@ -241,12 +289,12 @@ public class TSA {
     Path currentRelativePath = Paths.get("src/progetto3");
     String s = currentRelativePath.toAbsolutePath().toString();
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    String path = s + "/PublicSuperHash";
     
-    String myDirectoryPath = s + "/folderPublicSuperHashValue";
-    String docWithTimeStampPath = s + "/inboxUsers/";
-    
-    byte[] sh=utility.loadFile(myDirectoryPath + "/superhash" + this.timeframenumber + ".shv");
-    byte[] preSh=utility.loadFile(myDirectoryPath + "/superhash" + (this.timeframenumber-1) + ".shv");
+    Journal j = new Journal();
+    j.load(path+"/PublicSH.j");
+    byte[] sh=j.byteList.get(this.timeframenumber);
+    byte[] preSh=j.byteList.get(timeframenumber-1);
     
     for(int i=0;i<8;i++){
         if(!this.hID.get(i).matches(".*(fakeID).*")){
@@ -259,7 +307,7 @@ public class TSA {
              outputStream.write(preSh);
              outputStream.write(utility.sign(outputStream.toByteArray(), privateKeyTsa, typeSign));
             byte[]  tmp= outputStream.toByteArray();
-          //  utility.writeFile(docWithTimeStampPath+ "/inbox_" + this.hID.get(i) +"/"+this.listNameFile.get(i), tmp);
+            utility.writeFile(currentRelativePath+ "/readyTSA_"+this.idTsa+"/"+ this.hID.get(i)+".mt",tmp);
             outputStream.flush();
 
         }

@@ -55,7 +55,7 @@ public class Progetto3 {
         giovanni.sendDocumentToTSA(pathFileGiovanni,"giovanni", "Tsa1",tsaKeyPub);
         ciccio.sendDocumentToTSA(pathFileCiccio, "ciccio", "Tsa1", tsaKeyPub);
         
-        Tsa1.merkelTree("Tsa1", tsaKeyPr,tsaKeyPub);
+        //Tsa1.merkelTree("Tsa1", tsaKeyPr,tsaKeyPub);
         
         
         
