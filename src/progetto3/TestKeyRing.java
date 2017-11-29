@@ -20,6 +20,8 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.ArrayList;
+import java.util.List;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -44,60 +46,70 @@ public class TestKeyRing {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         s = s + "/wallet";
-
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(1024, new SecureRandom());
-        KeyPair userKey = keyPairGenerator.generateKeyPair();
-        keyPairGenerator.initialize(2048, new SecureRandom());
-        KeyPair userKey2 = keyPairGenerator.generateKeyPair();
-
-        KeyPairGenerator keyPairGenerator2 = KeyPairGenerator.getInstance("DSA");
-        keyPairGenerator2.initialize(1024, new SecureRandom());
-        KeyPair userKey3 = keyPairGenerator2.generateKeyPair();
-        keyPairGenerator2.initialize(2048, new SecureRandom());
-        KeyPair userKey4 = keyPairGenerator2.generateKeyPair();
-
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-        keyGenerator.init(128, new SecureRandom());
-        SecretKey secretKey = keyGenerator.generateKey();
-        keyGenerator.init(256, new SecureRandom());
-        SecretKey secretKey2 = keyGenerator.generateKey();
-
-        KeyGenerator keyGenerator2 = KeyGenerator.getInstance("DES");
-        keyGenerator2.init(56, new SecureRandom());
-        SecretKey secretKey3 = keyGenerator2.generateKey();
-
+        List<KeyRing> lc = new ArrayList<KeyRing>();
+        KeyRing c = new KeyRing();
         KeyRing c2 = new KeyRing();
+        KeyPairGenerator gRsa = KeyPairGenerator.getInstance("RSA");
+        KeyPairGenerator gDsa = KeyPairGenerator.getInstance("DSA");
+        KeyGenerator gAes = KeyGenerator.getInstance("AES");
+        KeyGenerator gDes = KeyGenerator.getInstance("DES");
+        String[] id = {"ciccio", "fabrizio", "giovanni", "daniele", "annalisa", "giuseppe", "dario", "francesca", "filomena","tsa"};
 
-        c2.addPassWeb("google", "ciao");
-        c2.addPassWeb("facebook", "ciao2");
-        c2.addKeyPairRSA("azienda", userKey);
-        c2.addKeyPairRSA("azienda1", userKey2);
-        c2.addKeyPairDSA("azienda", userKey3);
-        c2.addKeyPairDSA("azienda1", userKey4);
-        c2.addSimmetric("AES", "azienda", secretKey);
-        c2.addSimmetric("AES", "azienda1", secretKey2);
-        c2.addSimmetric("DES", "azienda", secretKey3);
+        
+        for(int i=0 ; i<10;i++){
+            c = new KeyRing();
+            for(int  j = 0 ; j<3;j++){
+                gRsa.initialize(1024, new SecureRandom());
+                c.addKeyPairAsimmetric("RSA", "chiave1024_"+j, gRsa.genKeyPair());
+                gRsa.initialize(2048, new SecureRandom());
+                c.addKeyPairAsimmetric("RSA", "chiave2048_"+j, gRsa.genKeyPair());
+                gDsa.initialize(1024, new SecureRandom());
+                c.addKeyPairSignature("DSA", "chiave1024_"+j, gDsa.genKeyPair());
+                gDsa.initialize(2048, new SecureRandom());
+                c.addKeyPairSignature("DSA", "chiave2048_"+j, gDsa.genKeyPair());
+                
+                if(id[i].compareTo("tsa")==0){
+                    
+                gAes.init(128, new SecureRandom());
+                c.addSimmetric("AES", "chiave128_"+j, gAes.generateKey());
+                gAes.init(256, new SecureRandom());
+                c.addSimmetric("AES", "chiave256_"+j, gAes.generateKey());
+                gDes.init(56, new SecureRandom());
+                c.addSimmetric("DES", "chiave56_"+j, gDes.generateKey());
+                
+                c.addPassWeb("sito"+j, "pass"+j);
+                    
+                }
+                
+                
+                
+            }
+             gAes.init(256, new SecureRandom());
+             
+             c.SaveKeyRing(id[i]+"pass", s, id[i]);
+        }
+ 
+        for (int i = 0; i < 10; i++) {
+            c.loadKeyRing(s+"/"+id[i]+".w", id[i]+"pass");
+            for(int j = 0 ; j <10; j++){
+                if(j!=i){
+                    c2.loadKeyRing(s+"/"+id[j]+".w", id[j]+"pass");
+                    for(int k=0 ; k < 3 ; k++){
+                        c2.addPublicKey("RSA", id[i]+"_chiave1024_"+k, c.getMyPublicAsimmetric("RSA", "chiave1024_"+k));
+                        c2.addPublicKey("RSA", id[i]+"_chiave2048_"+k, c.getMyPublicAsimmetric("RSA", "chiave2048_"+k));
+                        c2.addPublicKey("DSA", id[i]+"_chiave1024_"+k, c.getMyPublicSignature("DSA", "chiave1024_"+k));
+                        c2.addPublicKey("DSA", id[i]+"_chiave2048_"+k, c.getMyPublicSignature("DSA", "chiave2048_"+k));
+                       
+                    }
+                    c2.SaveKeyRing(id[j]+"pass", s, id[j]);
+                }
+            }
+            
 
-        c2.SaveKeyRing("vespa50", s, "ciccio");
+        }
+      
 
-        KeyRing c3 = new KeyRing();
-
-        c3.loadKeyRing(s + "/ciccio.w", "vespa50");
-
-        out.println(c2.getPassWeb("google").equals(c3.getPassWeb("google")));
-        out.println(c2.getPassWeb("facebook").equals(c3.getPassWeb("facebook")));
-        out.println(c2.getPrivateDSA("azienda").equals(c3.getPrivateDSA("azienda")));
-        out.println(c2.getPrivateDSA("azienda1").equals(c3.getPrivateDSA("azienda1")));
-        out.println(c2.getPrivateRSA("azienda").equals(c3.getPrivateRSA("azienda")));
-        out.println(c2.getPrivateRSA("azienda1").equals(c3.getPrivateRSA("azienda1")));
-        out.println(c2.getPublicDSA("azienda").equals(c3.getPublicDSA("azienda")));
-        out.println(c2.getPublicDSA("azienda1").equals(c3.getPublicDSA("azienda1")));
-        out.println(c2.getPublicRSA("azienda").equals(c3.getPublicRSA("azienda")));
-        out.println(c2.getPublicRSA("azienda1").equals(c3.getPublicRSA("azienda1")));
-        out.println(c2.getSimmetric("AES", "azienda").equals(c3.getSimmetric("AES", "azienda")));
-        out.println(c2.getSimmetric("AES", "azienda1").equals(c3.getSimmetric("AES", "azienda1")));
-        out.println(c2.getSimmetric("DES", "azienda").equals(c3.getSimmetric("DES", "azienda")));
+        
 
     }
 

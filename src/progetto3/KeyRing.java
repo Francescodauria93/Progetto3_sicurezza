@@ -61,10 +61,49 @@ public class KeyRing implements Serializable {
 
     }
 
-    private Map<String, KeyPair> dict_RSA;
-    private Map<String, KeyPair> dict_DSA;
+    private class WrapperAsimmetric implements Serializable {
+
+        private Map<String, KeyPair> dict_byte;
+
+        private WrapperAsimmetric() {
+            this.dict_byte = new HashMap<String, KeyPair>();
+
+        }
+
+        private KeyPair get(String id) {
+            return this.dict_byte.get(id);
+        }
+
+        private void add(String id, KeyPair k) {
+            this.dict_byte.put(id, k);
+        }
+
+    }
+
+    private class WrapperPublic implements Serializable {
+
+        private Map<String, PublicKey> dict_byte;
+
+        private WrapperPublic() {
+            this.dict_byte = new HashMap<String, PublicKey>();
+
+        }
+
+        private PublicKey get(String id) {
+            return this.dict_byte.get(id);
+        }
+
+        private void add(String id, PublicKey k) {
+            this.dict_byte.put(id, k);
+        }
+
+    }
+
+    private Map<String, WrapperAsimmetric> dict_asimmetric_key;
+    private Map<String, WrapperAsimmetric> dict_signature;
     private Map<String, String> dict_pass_web;
     private Map<String, WrapperSimmetric> dict_simmetric_key;
+    private Map<String, WrapperPublic> dict_public_key;
 
     private byte[] salt;
 
@@ -74,50 +113,117 @@ public class KeyRing implements Serializable {
 
     public KeyRing() {
 
-        this.dict_DSA = new HashMap<String, KeyPair>(); //ok
-        this.dict_RSA = new HashMap<String, KeyPair>(); //ok
+        this.dict_signature = new HashMap<String, WrapperAsimmetric>(); //ok
+        this.dict_asimmetric_key = new HashMap<String, WrapperAsimmetric>(); //ok
         this.dict_pass_web = new HashMap<String, String>();
         this.dict_simmetric_key = new HashMap<String, WrapperSimmetric>(); //Wrapper
+        this.dict_public_key = new HashMap<String, WrapperPublic>();
         this.random = new SecureRandom();
         this.salt = new byte[32];
         random.nextBytes(salt);
 
     }
 
-    public PublicKey getPublicDSA(String id) {
+    public PublicKey getPublicKey(String type, String id) {
 
-        PublicKey pb = this.dict_DSA.get(id).getPublic();
-        return pb;
+        if (this.dict_public_key.containsKey(type)) {
+            WrapperPublic w = this.dict_public_key.get(type);
+            return w.get(id);
 
-    }
-
-    public PrivateKey getPrivateDSA(String id) {
-
-        PrivateKey pv = this.dict_DSA.get(id).getPrivate();
-        return pv;
+        } else {
+            return null;
+        }
 
     }
 
-    public PublicKey getPublicRSA(String id) {
+    public void addPublicKey(String type, String id, PublicKey k) {
 
-        PublicKey pb = this.dict_RSA.get(id).getPublic();
-        return pb;
+        if (this.dict_public_key.containsKey(type)) {
+            this.dict_public_key.get(type).add(id, k);
+
+        } else {
+
+            WrapperPublic w = new WrapperPublic();
+            w.add(id, k);
+            this.dict_public_key.put(type, w);
+
+        }
+    }
+
+    public PublicKey getMyPublicSignature(String type, String id) {
+
+        if (this.dict_signature.containsKey(type)) {
+            WrapperAsimmetric w = this.dict_signature.get(type);
+            return w.get(id).getPublic();
+
+        } else {
+            return null;
+        }
 
     }
 
-    public PrivateKey getPrivateRSA(String id) {
+    public PrivateKey getMyPrivateSignature(String type, String id) {
 
-        PrivateKey pv = this.dict_RSA.get(id).getPrivate();
-        return pv;
+        if (this.dict_signature.containsKey(type)) {
+            WrapperAsimmetric w = this.dict_signature.get(type);
+            return w.get(id).getPrivate();
+
+        } else {
+            return null;
+        }
 
     }
 
-    public void addKeyPairDSA(String id, KeyPair kp) {
-        this.dict_DSA.put(id, kp);
+    public PublicKey getMyPublicAsimmetric(String type, String id) {
+
+        if (this.dict_asimmetric_key.containsKey(type)) {
+            WrapperAsimmetric w = this.dict_asimmetric_key.get(type);
+            return w.get(id).getPublic();
+
+        } else {
+            return null;
+        }
+
     }
 
-    public void addKeyPairRSA(String id, KeyPair kp) {
-        this.dict_RSA.put(id, kp);
+    public PrivateKey getMyPrivateAsimmetric(String type, String id) {
+
+        if (this.dict_asimmetric_key.containsKey(type)) {
+            WrapperAsimmetric w = this.dict_asimmetric_key.get(type);
+            return w.get(id).getPrivate();
+
+        } else {
+            return null;
+        }
+
+    }
+
+    public void addKeyPairSignature(String type, String id, KeyPair kp) {
+
+        if (this.dict_signature.containsKey(type)) {
+            this.dict_signature.get(type).add(id, kp);
+
+        } else {
+
+            WrapperAsimmetric w = new WrapperAsimmetric();
+            w.add(id, kp);
+            this.dict_signature.put(type, w);
+
+        }
+    }
+
+    public void addKeyPairAsimmetric(String type, String id, KeyPair kp) {
+
+        if (this.dict_asimmetric_key.containsKey(type)) {
+            this.dict_asimmetric_key.get(type).add(id, kp);
+
+        } else {
+
+            WrapperAsimmetric w = new WrapperAsimmetric();
+            w.add(id, kp);
+            this.dict_asimmetric_key.put(type, w);
+
+        }
     }
 
     public String getPassWeb(String id) {
@@ -193,11 +299,12 @@ public class KeyRing implements Serializable {
         in = new ObjectInputStream(bis);
         kr = (KeyRing) in.readObject();
 
-        this.dict_DSA = kr.dict_DSA;
-        this.dict_RSA = kr.dict_RSA;
+        this.dict_asimmetric_key = kr.dict_asimmetric_key;
+        this.dict_public_key = kr.dict_public_key;
+        this.dict_signature = kr.dict_signature;
         this.dict_pass_web = kr.dict_pass_web;
         this.dict_simmetric_key = kr.dict_simmetric_key;
-        //+ public
+
     }
 
     public void SaveKeyRing(String password, String path, String label) throws FileNotFoundException, IOException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
@@ -227,7 +334,6 @@ public class KeyRing implements Serializable {
         byte complete[] = outputStream.toByteArray();
         outputStream.close();
         utility.writeFile(path + "/" + label + ".w", complete);
-        System.out.println("ho salvato in  : " + path + label + ".w");
 
     }
 
