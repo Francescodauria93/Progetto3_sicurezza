@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +18,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.util.ArrayList;
@@ -37,20 +39,27 @@ public class TSA {
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
     
-    public void merkelTree() throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
+    public void merkelTree(String idTsa,PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException {
 
-        String idTsa="";
+        
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
         File dir = new File(myDirectoryPath);
-        File[] directoryListing = dir.listFiles();
         
+        //File[] directoryListing = dir.listFiles();
+        File[] directoryListing = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
 
         if (directoryListing.length != 8) { // riempio
-            this.fillWaiting();
+            this.fillWaiting(idTsa,tsaPub);
         }
 
+        
         byte[] readByteEnc = null; //byte letti temporanei
         
         List<byte[]> hlist = new ArrayList<byte[]>();    //lista di h
@@ -58,15 +67,15 @@ public class TSA {
         List<byte[]> levelTwo = new ArrayList<byte[]>();   //livello di 2 elementi
         byte[] hashRoot = new byte[32]; // root Hash
 
-        Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "CBC", "PKCS1Padding");
-        PrivateKey tsaPK = null;
+        Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
+        
         // qui costruisco hlist e hID
         for (File child : directoryListing) {
             
-            readByteEnc = utility.loadFile(child.toString()); // leggo il file
+            readByteEnc = utility.loadFile(child.getPath()); // leggo il file
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
-            String currID = Arrays.copyOfRange(readByte, 32, readByte.length).toString();
+            String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
             this.hID.add(currID);
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
@@ -75,6 +84,7 @@ public class TSA {
 
         }
 
+       
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
 
         for (int i = 0; i < 8; i += 2) { // costruisco il terzo livello
@@ -130,13 +140,22 @@ public class TSA {
         utility.writeFile(myDirectoryPath + "/superhash" + this.timeframenumber + ".shv", superHash);
     }
 
-    private void fillWaiting() throws NoSuchAlgorithmException, IOException {
-        String idTsa="";
+    private void fillWaiting(String idTsa,PublicKey publicTSA) throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException {
+       
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inbox_"+idTsa+"/";
+        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        
         File dir = new File(myDirectoryPath);
-        File[] directoryListing = dir.listFiles();
+        //File[] directoryListing = dir.listFiles();
+        File[] directoryListing = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
+        
+        
         int fNumber = 8 - directoryListing.length;// quanti da aggiungere
 
         SecureRandom random = new SecureRandom();
@@ -146,7 +165,7 @@ public class TSA {
 
         int i = 0;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
+Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
         while (i < fNumber) {
 
             random.nextBytes(bytes);
@@ -156,6 +175,8 @@ public class TSA {
             byte completeDocument[] = outputStream.toByteArray();
             outputStream.flush();
             String path = myDirectoryPath + "/fakeID" + i;
+            
+            byte[] DocumentEncrypted = cipherUtility.asimmetricEncode(c, completeDocument, publicTSA);
             utility.writeFile(path, completeDocument);
             i += 1;
 

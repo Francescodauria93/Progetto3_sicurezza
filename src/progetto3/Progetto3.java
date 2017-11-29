@@ -16,7 +16,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import javax.crypto.BadPaddingException;
@@ -35,8 +40,25 @@ public class Progetto3 {
      */
 
     public static void main(String[] args) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, InvalidAlgorithmParameterException, SignatureException {
-   
-  
+        User giovanni=new User();
+        User ciccio =new User();
+        TSA Tsa1=new TSA();
+        String pathFileGiovanni="/Users/dp.alex/Documents/9.jpg";
+        String pathFileCiccio="/Users/dp.alex/Documents/frigewallpaper.jpg";
+        
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+	keyPairGenerator.initialize(1024, new SecureRandom());
+	KeyPair userKey = keyPairGenerator.generateKeyPair();
+		
+	PrivateKey tsaKeyPr = userKey.getPrivate();
+	PublicKey tsaKeyPub = userKey.getPublic();
+        giovanni.sendDocumentToTSA(pathFileGiovanni,"giovanni", "Tsa1",tsaKeyPub);
+        ciccio.sendDocumentToTSA(pathFileCiccio, "ciccio", "Tsa1", tsaKeyPub);
+        
+        Tsa1.merkelTree("Tsa1", tsaKeyPr,tsaKeyPub);
+        
+        
+        
     }
     
     

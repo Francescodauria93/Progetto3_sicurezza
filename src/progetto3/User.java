@@ -28,14 +28,14 @@ import javax.crypto.*;
  */
 public class User {
 
-    public void sendDocumentToTSA(String pathFile, String id, String idTsa) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public void sendDocumentToTSA(String pathFile, String id, String idTsa,PublicKey publicTSA) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
 
         byte[] myID = id.getBytes();
         byte[] fileReaded = utility.loadFile(pathFile);
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         sha.update(fileReaded);
         byte[] hashFileReaded = sha.digest();
-        String nameFile = hashFileReaded.toString();
+        String nameFile = utility.nameFile(pathFile);
         //creo un ByteArrayOutputStream per concatenare gli array di byte
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(hashFileReaded);
@@ -44,13 +44,12 @@ public class User {
         //chiudo lo stram e scrivo l'array di byte appena concatenato
         outputStream.close();
         //creo istanza cifrario RSA
-        PublicKey publicTSA = null;
-        Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "CBC", "PKCS1Padding");
+        
+        Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
         byte[] DocumentEncrypted = cipherUtility.asimmetricEncode(c, completeDocument, publicTSA);
         //salvo tutto in documento_ID_user.toTsa
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-
         String destEncrypted = s + "/inboxTSA_" + idTsa + "/" + nameFile;
         utility.writeFile(destEncrypted, DocumentEncrypted);
 
@@ -76,19 +75,9 @@ public class User {
         byte[] arrayToVerify = utility.arrayToVerify(intest, hi, sequenceMerkle, sh, preSh);
         byte[] rootHash = this.constructRoot(hi, sequenceMerkle);
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
-
-        if (utility.verifySign(arrayToVerify, sign, tsaKey, intestVect[3])) {
-            if (online) {
-                check = checkOnline();
-            } else {
-                sha.update(utility.concatByte(preSh, rootHash));
-                if (sh == sha.digest()) {
-                    check = true;
-                }
-
-            }
-        } else {
-            check = false;
+        sha.update(utility.concatByte(preSh, rootHash));
+        if ((utility.verifySign(arrayToVerify, sign, tsaKey, intestVect[3]))&&sh == sha.digest()) {
+            check=true;
         }
         return check;
 
@@ -129,10 +118,7 @@ public class User {
         return root;
     }
 
-
-
     private boolean checkOnline() throws IOException {
-
         return true;
     }
 
