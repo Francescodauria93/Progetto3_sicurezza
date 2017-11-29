@@ -157,9 +157,9 @@ public class utility implements Serializable {
         while (Input.hasNextLine()) {
             Text += Input.nextLine();
         }
-
         return Text;
     }
+    
     
 
 }

@@ -85,7 +85,7 @@ public class TSA {
             fillNode = this.fillWaiting(idTsa);
             
             for(byte[] child : fillNode){
-            hlist.add(child);//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
+            hlist.add(child);
             this.hID.add("fakeID"); 
             }
         }
@@ -144,11 +144,11 @@ public class TSA {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/PublicSuperHash";
-        String name  = "SH_TF"+this.timeframenumber+"_"+utility.get
-
-   
-        
+        String myDirectoryPath = s + "/PublicSuperHash/";
+        String journalText=utility.readTxt(myDirectoryPath+"PublicSHJournal.txt");
+        journalText += superHash.toString()+ "\t"+this.timeframenumber+"\t"+utility.getTimeFromServer("GMT")+"\n";
+        //String lines[] = utility.readTxt(myDirectoryPath+"PublicSHJournal.txt").split("\\r?\\n");
+  
     }
 
     private List<byte[]> fillWaiting(String idTsa) throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException {
@@ -200,19 +200,17 @@ public class TSA {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/PublicSuperHash";
+        String myDirectoryPath = s + "/PublicSuperHash/";
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
         random.nextBytes(bytes);
-        HashMap<String,byte[]> m = new HashMap<String,byte[]>();
-        
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(bytes);
-        
-     
-        utility.writeFile(myDirectoryPath + "/superhash0.shv", );
-
+    
+        String txt = sha.digest().toString() + "\t"+this.timeframenumber+"\t"+utility.getTimeFromServer("GMT")+"\n";
+        utility.writeTxt(myDirectoryPath+"PublicSHJournal.txt", txt);
+ 
     }
 
     private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException { //cambiare
@@ -232,7 +230,6 @@ public class TSA {
         return preSH;
 
     }
-    
     
     private void sendAll(List<byte[]> hlist) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException{
     //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
