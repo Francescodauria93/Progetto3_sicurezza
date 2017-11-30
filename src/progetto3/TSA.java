@@ -46,15 +46,16 @@ public class TSA {
     private List<String> hID;
 
     private int timeframenumber;
-    private String idTsa = "Tsa1";
+    private String idTsa ;
     private String typeSign = "SHA256withDSA";
     private PrivateKey signKey;
     private PrivateKey encKey;
 
-    public TSA() throws ClassNotFoundException, IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public TSA(String id) throws ClassNotFoundException, IOException, FileNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
 
+        this.idTsa = id;
         KeyRing kTsa = new KeyRing();
-        kTsa.loadKeyRing(utility.getPathFolder("wallet") + "/tsa.w", "tsapass");
+        kTsa.loadKeyRing(utility.getPathFolder("wallet") + "/"+id+".w", id+"pass");
         this.signKey = kTsa.getMyPrivateSignature("DSA", "chiave1024_1");
         this.encKey = kTsa.getMyPrivateAsimmetric("RSA", "chiave1024_1");
         this.mapTimeStamp = new HashMap<String, String>();
