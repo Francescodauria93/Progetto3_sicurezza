@@ -23,6 +23,7 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +36,46 @@ import javax.crypto.Cipher;
 public class TSA {
 
     private Map<String, String> mapTimeStamp = new HashMap<String, String>();
-    private int timeframenumber = 1;
+    private int timeframenumber ;
     private Map<String, byte[]> allMapPath = new HashMap<String, byte[]>();
     private List<String> hID = new ArrayList<String>(); // lista di id
     private String idTsa = "Tsa1";
+    private String typeSign="SHA256withDSA";
+    private PrivateKey signKey;
     
-    public void start(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException{
+    
+    public TSA(PrivateKey signKey) throws ClassNotFoundException, IOException {
+        this.signKey=signKey;
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String myDirectoryPath = s + "/Public";
+        File dir = new File(myDirectoryPath);
+        String[] directoryListing = dir.list(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
+        
+        
+        if(directoryListing.length!=0){
+            Journal j = new Journal();
+            j.load(myDirectoryPath+"/"+"Public.j");
+            this.timeframenumber=j.byteListSH.size();
+        }else{
+            this.timeframenumber=1;
+        }
+        
+        
+    }
+    
+    
+    
+    public void start(PrivateKey tsaPK) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException{
         //semplificazione del tempo che intercorre tra un timeframe ed un altro
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        String myDirectoryPath = s + "/inboxTSA_"+this.idTsa+"/";
         File dir = new File(myDirectoryPath);
         File[] directoryListing = dir.listFiles(new FilenameFilter() {
         @Override
@@ -55,20 +86,20 @@ public class TSA {
         
 
         if(directoryListing.length>8){  //se ci sono più di 8 file in coda fai anche gli altri
-            this.merkelTree(tsaPK, tsaPub);
-            this.start(tsaPK, tsaPub);
+            this.merkelTree(tsaPK);
+            this.start(tsaPK);
         }else{
-            this.merkelTree(tsaPK, tsaPub);
+            this.merkelTree(tsaPK);
         }
 
     }
    
-    public void merkelTree(PrivateKey tsaPK,PublicKey tsaPub) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException {
+    public void merkelTree(PrivateKey tsaPK) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException {
 
         
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        String myDirectoryPath = s + "/inboxTSA_"+this.idTsa+"/";
         File dir = new File(myDirectoryPath);
         
         //File[] directoryListing = dir.listFiles();
@@ -98,27 +129,28 @@ public class TSA {
         byte[] hashRoot = new byte[32]; // root Hash
 
         Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
-        
+        MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         // qui costruisco hlist e hID
         for (String path : filelist) {
             
-            readByteEnc = utility.loadFile(path); // leggo il file
+            readByteEnc = utility.loadFile(myDirectoryPath +path); // leggo il file
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, tsaPK);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
             this.hID.add(currID);
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.mapTimeStamp.put(currID, timeStamp);
-            hlist.add(utility.concatByte(h_tmp, timeStamp.getBytes()));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
-            
-            File f = new File(path);
+            sha.update(utility.concatByte(h_tmp, timeStamp.getBytes()));
+            hlist.add(sha.digest());//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
+            File f = new File(myDirectoryPath +path);
             Files.delete(f.toPath()); //elimino l'elelemento servito
+            
 
         }
         
         if (fill) { // riempio
             List<byte[]> fillNode = new ArrayList<byte[]>();
-            fillNode = this.fillWaiting(idTsa);
+            fillNode = this.fillWaiting(this.idTsa);
             
             for(byte[] child : fillNode){
             hlist.add(child);
@@ -126,7 +158,7 @@ public class TSA {
             }
         }
 
-        MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
+        
 
         for (int i = 0; i < 8; i += 2) { // costruisco il terzo livello
             sha.update(utility.concatByte(hlist.get(i), hlist.get(i + 1)));
@@ -139,8 +171,8 @@ public class TSA {
         sha.update(utility.concatByte(levelTwo.get(0), levelTwo.get(1))); // costruisco la root
         hashRoot = (sha.digest());
 
-        Journal j=new Journal();
-        byte[] preSuperHash = j.byteListSH.get(timeframenumber-1); // carico la superHashprecedente
+        
+        byte[] preSuperHash = this.getPreSuperHash(); // carico la superHashprecedente
         sha.update(utility.concatByte(preSuperHash, hashRoot));
         byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
         this.savePublicSuperHash(newSuperHash); // la pubblico
@@ -148,15 +180,26 @@ public class TSA {
 
         this.createPath(hlist, levelFour, levelTwo );
         this.sendAll(hlist);
-        
+        this.clearAll();
         this.timeframenumber += 1; // aggiorno il timeframe
+    }
+    
+    private void clearAll(){
+        this.allMapPath.clear();
+        this.hID.clear();
+        this.mapTimeStamp.clear();
     }
 
     private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1 ) throws IOException {
+        
+        System.out.print("***********************");
         byte dx = 0;
         byte sx = 1;
-    
         this.allMapPath.put(this.hID.get(0), utility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
+        System.out.println(this.hID.get(0));
+        System.out.println(Base64.getEncoder().encodeToString(leaf.get(1)));
+        System.out.println(Base64.getEncoder().encodeToString(l2.get(1)));
+        System.out.println(Base64.getEncoder().encodeToString(l1.get(1)));
         this.allMapPath.put(this.hID.get(1), utility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(2), utility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
         this.allMapPath.put(this.hID.get(3), utility.concatMerkleByte(sx, leaf.get(2), sx, l2.get(0), dx, l1.get(1)));
@@ -195,7 +238,7 @@ public class TSA {
        
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inboxTSA_"+idTsa+"/";
+        String myDirectoryPath = s + "/inboxTSA_"+this.idTsa+"/";
         
         
         File dir = new File(myDirectoryPath);
@@ -254,13 +297,13 @@ public class TSA {
         journal.save(path,"Public");
  
     }
-/*
+
     private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException, ClassNotFoundException { //cambiare
 
         int currentTimeFrame = this.timeframenumber;
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/PublicSuperHash";
+        String path = s + "/Public";
         File dir = new File(path);
         File[] directoryListing = dir.listFiles(new FilenameFilter() {
         @Override
@@ -279,40 +322,54 @@ public class TSA {
         
 
 
-    }*/
+    }
     
     private void sendAll(List<byte[]> hlist) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, ClassNotFoundException{
     //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
     //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
     
-    String myID="TSA1";
-    String typeSign="";
-    PrivateKey privateKeyTsa=null;
+
     Path currentRelativePath = Paths.get("src/progetto3");
     String s = currentRelativePath.toAbsolutePath().toString();
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    
     String path = s + "/Public";
     
     Journal j = new Journal();
     j.load(path+"/Public.j");
-    byte[] sh=j.byteListSH.get(this.timeframenumber);
-    byte[] preSh=j.byteListSH.get(timeframenumber-1);
     
+    byte[] sh=j.byteListSH.get(this.timeframenumber);
+    byte[] preSh=j.byteListSH.get(this.timeframenumber-1);
+    byte[] rootHash = j.byteListRH.get(this.timeframenumber-1);
+    System.out.println("root -> "+Base64.getEncoder().encodeToString(rootHash));
+        System.out.println("preSH -> "+Base64.getEncoder().encodeToString(preSh));
+        System.out.println("SH - > "+Base64.getEncoder().encodeToString(sh));
+    
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     for(int i=0;i<8;i++){
         if(!this.hID.get(i).matches(".*(fakeID).*")){
-            byte[] intest=(this.hID.get(i)+"/"+myID+"/"+this.timeframenumber+"/"+typeSign+"/"+this.mapTimeStamp.get(this.hID.get(i))+"/").getBytes();
+            System.out.println("TSA-mitt: "+this.hID.get(i));
+            byte[] intest=(this.hID.get(i)+"/"+this.idTsa+"/"+this.timeframenumber+"/"+this.typeSign+"/"+this.mapTimeStamp.get(this.hID.get(i))+"/").getBytes();
              outputStream.write(intest.length);
              outputStream.write(intest);
+             System.out.println(intest.length);
              outputStream.write(hlist.get(i));
+             System.out.println("h1 -> "+Base64.getEncoder().encodeToString(hlist.get(i)));
              outputStream.write(this.allMapPath.get(this.hID.get(i)));
+             System.out.println(this.allMapPath.get(this.hID.get(i)).length);
              outputStream.write(sh);
+             System.out.println(sh.length);
              outputStream.write(preSh);
-             outputStream.write(utility.sign(outputStream.toByteArray(), privateKeyTsa, typeSign));
+             System.out.println(preSh.length);
+             byte[] signature=utility.sign(outputStream.toByteArray(), this.signKey, this.typeSign);
+             System.out.println(signature.length);
+             outputStream.write(signature);
             byte[]  tmp= outputStream.toByteArray();
+            System.out.println(tmp.length + this.hID.get(i));
             utility.writeFile(currentRelativePath+ "/readyTSA_"+this.idTsa+"/"+ this.hID.get(i)+".mt",tmp);
-            outputStream.flush();
+            
 
         }
+        outputStream.flush();
         }
     outputStream.close();
 

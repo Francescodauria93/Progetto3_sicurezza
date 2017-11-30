@@ -40,6 +40,7 @@ public class Journal implements Serializable {
         in = new ObjectInputStream(bis);
         Journal j = (Journal) in.readObject();
         this.byteListSH = j.getListSH();
+        this.byteListRH = j.getListRH();
         
     }
     

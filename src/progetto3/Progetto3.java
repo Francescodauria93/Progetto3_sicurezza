@@ -40,20 +40,26 @@ public class Progetto3 {
      */
 
     public static void main(String[] args) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, InvalidAlgorithmParameterException, SignatureException {
-        User giovanni=new User();
-        User ciccio =new User();
-        TSA Tsa1=new TSA();
+        User giovanni=new User("giovanni");
+        User ciccio =new User("ciccio");
+        
+        KeyRing krGiovanni=new KeyRing();
+        krGiovanni.loadKeyRing("/Users/dp.alex/Documents/GitHub/Progetto3_sicurezza/src/progetto3/wallet/giovanni.w", "giovannipass");
+        KeyRing krCiccio=new KeyRing();
+        krCiccio.loadKeyRing("/Users/dp.alex/Documents/GitHub/Progetto3_sicurezza/src/progetto3/wallet/ciccio.w", "cicciopass");
+        KeyRing krTsa=new KeyRing();
+        krTsa.loadKeyRing("/Users/dp.alex/Documents/GitHub/Progetto3_sicurezza/src/progetto3/wallet/tsa.w", "tsapass");
+        
         String pathFileGiovanni="/Users/dp.alex/Documents/9.jpg";
         String pathFileCiccio="/Users/dp.alex/Documents/frigewallpaper.jpg";
+
+        giovanni.sendDocumentToTSA(pathFileGiovanni,"giovanni", "Tsa1",krGiovanni.getPublicKey("RSA", "tsa_chiave1024_1"));
+        ciccio.sendDocumentToTSA(pathFileCiccio, "ciccio", "Tsa1", krCiccio.getPublicKey("RSA", "tsa_chiave1024_1"));
         
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-	keyPairGenerator.initialize(1024, new SecureRandom());
-	KeyPair userKey = keyPairGenerator.generateKeyPair();
-		
-	PrivateKey tsaKeyPr = userKey.getPrivate();
-	PublicKey tsaKeyPub = userKey.getPublic();
-        giovanni.sendDocumentToTSA(pathFileGiovanni,"giovanni", "Tsa1",tsaKeyPub);
-        ciccio.sendDocumentToTSA(pathFileCiccio, "ciccio", "Tsa1", tsaKeyPub);
+        TSA tsa=new TSA(krTsa.getMyPrivateSignature("DSA", "chiave1024_1"));
+        tsa.start(krTsa.getMyPrivateAsimmetric("RSA", "chiave1024_1"));
+        
+        System.out.println(giovanni.checkValidity("Tsa1", krGiovanni.getPublicKey("DSA", "tsa_chiave1024_1")));
         
         //Tsa1.merkelTree("Tsa1", tsaKeyPr,tsaKeyPub);
         

@@ -46,7 +46,7 @@ public class TestKeyRing {
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
         s = s + "/wallet";
-        /*List<KeyRing> lc = new ArrayList<KeyRing>();
+        List<KeyRing> lc = new ArrayList<KeyRing>();
         KeyRing c = new KeyRing();
         KeyRing c2 = new KeyRing();
         KeyPairGenerator gRsa = KeyPairGenerator.getInstance("RSA");
@@ -54,7 +54,7 @@ public class TestKeyRing {
         KeyGenerator gAes = KeyGenerator.getInstance("AES");
         KeyGenerator gDes = KeyGenerator.getInstance("DES");
         String[] id = {"ciccio", "fabrizio", "giovanni", "daniele", "annalisa", "giuseppe", "dario", "francesca", "filomena","tsa"};
-
+/*
         
         for(int i=0 ; i<10;i++){
             c = new KeyRing();
@@ -106,17 +106,15 @@ public class TestKeyRing {
             }
             
 
-        }
-      */
-        
-        KeyRing c3 = new KeyRing();
-        KeyRing c4 = new KeyRing();
-        
-        c3.loadKeyRing(s+"/ciccio.w", "ciccio"+"pass");
-        c4.loadKeyRing(s+"/fabrizio.w", "fabrizio"+"pass");
-        
-        
+        }*/
 
+        KeyRing giovanni = new KeyRing();
+        giovanni.loadKeyRing("/Users/dp.alex/Documents/GitHub/Progetto3_sicurezza/src/progetto3/wallet/giovanni.w", "giovannipass");
+        KeyRing tsa = new KeyRing();
+        tsa.loadKeyRing("/Users/dp.alex/Documents/GitHub/Progetto3_sicurezza/src/progetto3/wallet/tsa.w", "tsapass");
+        out.println(giovanni.getPublicKey("DSA", "tsa_chiave1024_1").equals(tsa.getMyPublicSignature("DSA", "chiave1024_1")));
+        
+       
         
 
     }
