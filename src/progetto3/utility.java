@@ -89,6 +89,23 @@ public class utility implements Serializable {
         return tmp;
     }
         
+    public static String getIndexNameToSave(String id,String path){
+        File dir = new File(path);
+        String[] dirName=dir.list();
+        int k=0;
+        for(int i=0;i<dirName.length;i++){
+            if(dirName[i].matches(".*("+ id+").*")){
+                k+=1;
+            }
+        }
+        return Integer.toString(k);
+    }    
+    public static byte[] toHash256(byte[] file) throws NoSuchAlgorithmException{
+        MessageDigest sha = MessageDigest.getInstance("SHA-256");
+        sha.update(file);
+        return sha.digest();
+    }
+        
     public static byte[] sign(byte[] textToSign, PrivateKey userKeyPr, String alg) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
         if(alg.matches("SHA1withDSA") || alg.matches("SHA224withDSA") || alg.matches("SHA256withDSA")){
             Signature dsa = Signature.getInstance(alg);
