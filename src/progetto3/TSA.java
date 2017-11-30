@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 
 /**
  *
@@ -42,50 +43,29 @@ public class TSA {
     private String idTsa = "Tsa1";
     private String typeSign="SHA256withDSA";
     private PrivateKey signKey;
+    private KeyRing KTsa;
+    private SecretKey signatureKey;
     
     
-    public TSA(PrivateKey signKey) throws ClassNotFoundException, IOException {
-        this.signKey=signKey;
-        Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/Public";
-        File dir = new File(myDirectoryPath);
-        String[] directoryListing = dir.list(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return !name.equals(".DS_Store");
-        }
-        });
-        
-        
-        if(directoryListing.length!=0){
+    public TSA(KeyRing KTsa) throws ClassNotFoundException, IOException {
+        this.signKey=KTsa.getMyPrivateSignature("DSA", "chiave1024_1");
+        String [] filesPath = utility.getPathFiles("Public");
+
+        if(filesPath.length!=0){
             Journal j = new Journal();
-            j.load(myDirectoryPath+"/"+"Public.j");
+            j.load(filesPath[0]);
             this.timeframenumber=j.byteListSH.size();
         }else{
             this.timeframenumber=1;
         }
         
-        
     }
-    
-    
-    
+
     public void start(PrivateKey tsaPK) throws IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, SignatureException, ClassNotFoundException{
         //semplificazione del tempo che intercorre tra un timeframe ed un altro
-        Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inboxTSA_"+this.idTsa+"/";
-        File dir = new File(myDirectoryPath);
-        File[] directoryListing = dir.listFiles(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return !name.equals(".DS_Store");
-        }
-        });
+        String [] filesPath = utility.getPathFiles("inboxTSA_"+this.idTsa);
         
-
-        if(directoryListing.length>8){  //se ci sono più di 8 file in coda fai anche gli altri
+        if(filesPath.length>8){  //se ci sono più di 8 file in coda fai anche gli altri
             this.merkelTree(tsaPK);
             this.start(tsaPK);
         }else{

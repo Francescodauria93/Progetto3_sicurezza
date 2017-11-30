@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -158,6 +159,34 @@ public class utility implements Serializable {
             Text += Input.nextLine();
         }
         return Text;
+    }
+    
+    public static String getPathFolder(String x){
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String myDirectoryPath = s + "/"+x;
+        return myDirectoryPath;
+        
+    }
+    
+    public static String[] getPathFiles(String x){
+        Path currentRelativePath = Paths.get("src/progetto3");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        String myDirectoryPath = s + "/"+x;
+        File dir = new File(myDirectoryPath);
+        String[] directoryListing = dir.list(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            return !name.equals(".DS_Store");
+        }
+        });
+        
+        for(int i =0 ;i<directoryListing.length;i++){
+            directoryListing[i] = myDirectoryPath+"/"+directoryListing[i];
+        }
+        
+        return directoryListing;
+        
     }
     
     
