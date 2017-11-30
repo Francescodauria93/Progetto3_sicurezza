@@ -66,7 +66,7 @@ public class TSA {
         if (filesPath.length != 0) {
             Journal j = new Journal();
             j.load(filesPath[0]);
-            this.timeframenumber = j.byteListSH.size();
+            this.timeframenumber = j.getTF();
         } else {
             this.timeframenumber = 1;
         }
@@ -203,20 +203,9 @@ public class TSA {
 
     private List<byte[]> fillWaiting(String idTsa) throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException {
 
-        Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/inboxTSA_" + this.idTsa + "/";
+        String[] filesPath = utility.getPathFiles("inboxTSA_" + this.idTsa);
 
-        File dir = new File(myDirectoryPath);
-        //File[] directoryListing = dir.listFiles();
-        File[] directoryListing = dir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return !name.equals(".DS_Store");
-            }
-        });
-
-        int fNumber = 8 - directoryListing.length;// quanti da aggiungere
+        int fNumber = 8 - filesPath.length;// quanti da aggiungere
         List<byte[]> node = new ArrayList<byte[]>();
 
         SecureRandom random = new SecureRandom();
@@ -246,9 +235,7 @@ public class TSA {
 
     private void startSuperHash() throws NoSuchAlgorithmException, IOException { //cambiare
 
-        Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/Public";
+         String fileFolder = utility.getPathFolder("Public");
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
@@ -259,7 +246,7 @@ public class TSA {
         Journal journal = new Journal();
         journal.byteListSH.add(sha.digest());
 
-        journal.save(path, "Public");
+        journal.save(fileFolder, "Journal");
 
     }
 
@@ -267,22 +254,15 @@ public class TSA {
 
         int currentTimeFrame = this.timeframenumber;
         Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/Public";
-        File dir = new File(path);
-        File[] directoryListing = dir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return !name.equals(".DS_Store");
-            }
-        });
+        String[] filesPath = utility.getPathFiles("Public");
 
-        if (directoryListing.length == 0) {
+        if (filesPath.length == 0) {
             this.startSuperHash();
         }
-
+        filesPath = utility.getPathFiles("Public");
+        
         Journal journal = new Journal();
-        journal.load(path + "/Public.j");
+        journal.load(filesPath[0]);
         return journal.byteListSH.get(currentTimeFrame - 1);
 
     }
@@ -314,12 +294,15 @@ public class TSA {
                 byte[] signature = utility.sign(outputStream.toByteArray(), this.signKey, this.typeSign);
                 outputStream.write(signature);
                 byte[] tmp = outputStream.toByteArray();
-                utility.writeFile(pathFolder+"/"+this.hID(i)+utility.getIndexNameToSave(this.hID(i),pathFolder)+".mt", tmp);
+                utility.writeFile(pathFolder+"/"+this.hID.get(i)+utility.getIndexNameToSave(this.hID.get(i),pathFolder)+".mt", tmp);
                 
             }
             outputStream.flush();
         }
         outputStream.close();
+        
+        j.incrementTF();
+        j.save(utility.getPathFolder("Public"), "Journal");
 
     }
 

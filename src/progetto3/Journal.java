@@ -26,9 +26,10 @@ public class Journal implements Serializable {
     
     List<byte []> byteListSH;
     List<byte []> byteListRH;
+    int timeFrameCurrent;
 
     public Journal() {
-        
+        this.timeFrameCurrent=1;
         this.byteListSH = new ArrayList<byte[]>();
         this.byteListRH = new ArrayList<byte[]>();
     }
@@ -41,11 +42,11 @@ public class Journal implements Serializable {
         Journal j = (Journal) in.readObject();
         this.byteListSH = j.getListSH();
         this.byteListRH = j.getListRH();
+        this.timeFrameCurrent = j.getTF();
         
     }
     
 
-        
     public void save(String path ,String label) throws IOException{
         
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -65,6 +66,13 @@ public class Journal implements Serializable {
       public List getListRH (){
         return this.byteListRH;
     }
+      public void incrementTF(){
+          this.timeFrameCurrent+=1;
+      }
+      
+      public int getTF(){
+          return this.timeFrameCurrent;
+      }
     
     
     
