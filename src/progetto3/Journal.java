@@ -24,11 +24,13 @@ import java.util.List;
  */
 public class Journal implements Serializable {
     
-    List<byte []> byteList;
+    List<byte []> byteListSH;
+    List<byte []> byteListRH;
 
     public Journal() {
         
-        this.byteList = new ArrayList<byte[]>();
+        this.byteListSH = new ArrayList<byte[]>();
+        this.byteListRH = new ArrayList<byte[]>();
     }
     
     public void load(String path) throws ClassNotFoundException, IOException{
@@ -37,9 +39,12 @@ public class Journal implements Serializable {
         ObjectInput in = null;
         in = new ObjectInputStream(bis);
         Journal j = (Journal) in.readObject();
-        this.byteList = j.getList();
+        this.byteListSH = j.getListSH();
         
     }
+    
+
+        
     public void save(String path ,String label) throws IOException{
         
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -52,8 +57,12 @@ public class Journal implements Serializable {
         utility.writeFile(path+"/"+label+".j",byteClass);
         
     }
-    public List getList (){
-        return this.byteList;
+    public List getListSH (){
+        return this.byteListSH;
+    }
+    
+      public List getListRH (){
+        return this.byteListRH;
     }
     
     

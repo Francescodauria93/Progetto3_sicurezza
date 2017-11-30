@@ -72,7 +72,7 @@ public class User {
         byte[] sh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99, size_intest + 1 + 32 + 99 + 32);
         byte[] preSh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32, size_intest + 1 + 32 + 99 + 32 + 32);
         byte[] sign = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32 + 32, myDoc.length);
-        byte[] arrayToVerify = utility.arrayToVerify(intest, hi, sequenceMerkle, sh, preSh);
+        byte[] arrayToVerify = Arrays.copyOfRange(myDoc, 0, myDoc.length-sign.length);
         byte[] rootHash = this.constructRoot(hi, sequenceMerkle);
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(utility.concatByte(preSh, rootHash));

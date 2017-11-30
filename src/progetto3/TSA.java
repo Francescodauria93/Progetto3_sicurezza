@@ -139,11 +139,12 @@ public class TSA {
         sha.update(utility.concatByte(levelTwo.get(0), levelTwo.get(1))); // costruisco la root
         hashRoot = (sha.digest());
 
-        byte[] preSuperHash = this.getPreSuperHash(); // carico la superHashprecedente
+        Journal j=new Journal();
+        byte[] preSuperHash = j.byteListSH.get(timeframenumber-1); // carico la superHashprecedente
         sha.update(utility.concatByte(preSuperHash, hashRoot));
         byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
-        this.sendPublicSuperHash(newSuperHash); // la pubblico
-        this.sendPublicHash(hashRoot);   // pubblico anche l'hash
+        this.savePublicSuperHash(newSuperHash); // la pubblico
+        this.savePublicHash(hashRoot);   // pubblico anche l'hash
 
         this.createPath(hlist, levelFour, levelTwo );
         this.sendAll(hlist);
@@ -165,26 +166,27 @@ public class TSA {
         this.allMapPath.put(this.hID.get(7), utility.concatMerkleByte(sx, leaf.get(6), sx, l2.get(2), sx, l1.get(0)));
     }
 
-    private void sendPublicHash(byte[] hash) throws IOException {  //c
+    private void savePublicHash(byte[] hash) throws IOException, ClassNotFoundException, ClassNotFoundException {  //c
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String myDirectoryPath = s + "/PublicHashRoot";
-        
-        byte[] prec =utility.loadFile(myDirectoryPath);
-        utility.writeFile(myDirectoryPath + "/hash" + this.timeframenumber + ".hv", hash);
+        String path = s + "/Public";
+        Journal journal = new Journal();
+        journal.load(path+"/Public.j");
+        journal.byteListRH.add(hash);
+        journal.save(path, "Public");
 
     }
 
-    private void sendPublicSuperHash(byte[] superHash) throws IOException, ClassNotFoundException { //c
+    private void savePublicSuperHash(byte[] superHash) throws IOException, ClassNotFoundException { //c
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/PublicSuperHash";
+        String path = s + "/Public";
         Journal journal = new Journal();
-        journal.load(path+"/PublicSH.j");
-        journal.byteList.add(superHash);
-        journal.save(path, "PublicSH");
+        journal.load(path+"/Public.j");
+        journal.byteListSH.add(superHash);
+        journal.save(path, "Public");
         //String lines[] = utility.readTxt(myDirectoryPath+"PublicSHJournal.txt").split("\\r?\\n");
   
     }
@@ -238,7 +240,7 @@ public class TSA {
 
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
-        String path = s + "/PublicSuperHash";
+        String path = s + "/Public";
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
@@ -247,12 +249,12 @@ public class TSA {
         sha.update(bytes);
         
         Journal journal = new Journal();
-        journal.byteList.add(sha.digest());
+        journal.byteListSH.add(sha.digest());
     
-        journal.save(path,"PublicSH");
+        journal.save(path,"Public");
  
     }
-
+/*
     private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException, ClassNotFoundException { //cambiare
 
         int currentTimeFrame = this.timeframenumber;
@@ -272,12 +274,12 @@ public class TSA {
         }
         
         Journal journal = new Journal();
-        journal.load(path+"/PublicSH.j");
-        return journal.byteList.get(currentTimeFrame - 1);
+        journal.load(path+"/Public.j");
+        return journal.byteListSH.get(currentTimeFrame - 1);
         
 
 
-    }
+    }*/
     
     private void sendAll(List<byte[]> hlist) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, ClassNotFoundException{
     //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
@@ -289,12 +291,12 @@ public class TSA {
     Path currentRelativePath = Paths.get("src/progetto3");
     String s = currentRelativePath.toAbsolutePath().toString();
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    String path = s + "/PublicSuperHash";
+    String path = s + "/Public";
     
     Journal j = new Journal();
-    j.load(path+"/PublicSH.j");
-    byte[] sh=j.byteList.get(this.timeframenumber);
-    byte[] preSh=j.byteList.get(timeframenumber-1);
+    j.load(path+"/Public.j");
+    byte[] sh=j.byteListSH.get(this.timeframenumber);
+    byte[] preSh=j.byteListSH.get(timeframenumber-1);
     
     for(int i=0;i<8;i++){
         if(!this.hID.get(i).matches(".*(fakeID).*")){
