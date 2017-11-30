@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
@@ -21,8 +22,10 @@ import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import javax.crypto.*;
-
+import progetto3.KeyRing;
 /**
  *
  * @author dp.alex
@@ -30,101 +33,99 @@ import javax.crypto.*;
 public class User {
     
     private String myID;
-
-    public User(String myID) {
+    private String indexRsaUsedbyMe;
+    private String indexDsaUsedbyTsa="1";
+    private String tsaID;
+    private KeyRing myKR;
+    private Map<String, String> mappingNameFromOriginal = new HashMap<String, String>();
+    
+    public User(String myID) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         this.myID = myID;
+        this.myKR = new KeyRing();
+        String kRFolder = utility.getPathFolder("wallet/");
+        this.myKR.loadKeyRing(kRFolder+this.myID+".w", this.myID+"pass");
+
     }
-    
-    
 
-    public void sendDocumentToTSA(String pathFile, String id, String idTsa,PublicKey publicTSA) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
-
-        byte[] myID = id.getBytes();
-        byte[] fileReaded = utility.loadFile(pathFile);
-        MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        sha.update(fileReaded);
-        byte[] hashFileReaded = sha.digest();
-        String nameFile = utility.nameFile(pathFile);
+    public void sendDocumentToTSA(String pathFile, String idTsa,String i) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+     
+        this.indexRsaUsedbyMe=i;
+        this.tsaID=idTsa;
+        //preparo byte da inviare
+        byte[] myID = this.myID.getBytes();
+        byte[] hashFileReaded =utility.toHash256(utility.loadFile(pathFile));
+       
         //creo un ByteArrayOutputStream per concatenare gli array di byte
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(hashFileReaded);
         outputStream.write(myID);
         byte completeDocument[] = outputStream.toByteArray();
+        
         //chiudo lo stram e scrivo l'array di byte appena concatenato
         outputStream.close();
         //creo istanza cifrario RSA
-        
         Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
-        byte[] DocumentEncrypted = cipherUtility.asimmetricEncode(c, completeDocument, publicTSA);
+        byte[] DocumentEncrypted = cipherUtility.asimmetricEncode(c, completeDocument, this.myKR.getPublicKey("RSA",this.tsaID+ "_chiave1024_"+this.indexDsaUsedbyTsa));
         //salvo tutto in documento_ID_user.toTsa
-        Path currentRelativePath = Paths.get("src/progetto3");
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String destEncrypted = s + "/inboxTSA_" + idTsa + "/" + nameFile;
-        utility.writeFile(destEncrypted, DocumentEncrypted);
+        String destFolder = utility.getPathFolder("inboxTSA_" + idTsa + "/");
+        String indexName=utility.getIndexNameToSave(this.myID , utility.getPathFolder("inboxTSA_" + idTsa + "/"));
+        this.mappingNameFromOriginal.put(pathFile,this.myID+indexName+".mt");
+        utility.writeFile(destFolder+this.myID+indexName, DocumentEncrypted);
 
     }
 
-    public boolean checkValidity(String idTsa, PublicKey tsaKey) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        System.out.println("*****");
-        Path currentRelativePath = Paths.get("src/progetto3"); //cambiare solo il salvataggio----
-        String s = currentRelativePath.toAbsolutePath().toString();
-        String myInboxPath = s + "/readyTSA_" + idTsa + "/";
-        boolean check = false;
-        byte[] myDoc = utility.loadFile(myInboxPath + this.myID +".mt");
-        System.out.println(myDoc.length);
-        //intestazione Stringa trasformata in byte[]:  "idMitt/idTsa/#diserie(timeframe)/tipo_di_alg_firma/timestampfoglia i-esima"
-        //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
+    public void checkValidity(String pathToVerify) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+  
+        String pathReadyTsa=utility.getPathFolder("readyTSA_" + this.tsaID + "/");
+       
+        String destFolder = utility.getPathFolder("inboxUsers/");
+
+        
+        byte[] myDoc = utility.loadFile(utility.getPathFolder("readyTSA_" + this.tsaID + "/")+this.mappingNameFromOriginal.get(pathToVerify));
         int size_intest = (int) myDoc[0];
         byte[] intest = Arrays.copyOfRange(myDoc, 1, size_intest + 1);
-         System.out.println(intest.length);
         String[] intestVect = utility.intestToStringArray(intest, 5);
-    
         byte[] hi = Arrays.copyOfRange(myDoc, size_intest + 1, size_intest + 1 + 32);
-         System.out.println(hi.length);
-        
         byte[] sequenceMerkle = Arrays.copyOfRange(myDoc, size_intest + 1 + 32, size_intest + 1 + 32 + 99);
-        System.out.println(sequenceMerkle.length);
         byte[] sh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99, size_intest + 1 + 32 + 99 + 32);
-        System.out.println(sh.length);
         byte[] preSh = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32, size_intest + 1 + 32 + 99 + 32 + 32);
-        System.out.println(preSh.length);
         byte[] sign = Arrays.copyOfRange(myDoc, size_intest + 1 + 32 + 99 + 32 + 32, myDoc.length);
-        
-        System.out.println(sign.length + " "+ (size_intest + 1 + 32 + 99 + 32 + 32) +" - "+myDoc.length);
         byte[] arrayToVerify = Arrays.copyOfRange(myDoc, 0, myDoc.length-sign.length);
-        System.out.println("*****");
+        byte[] myHi = utility.toHash256(utility.concatByte(utility.toHash256(utility.loadFile(pathToVerify)),intestVect[4].getBytes()));
         byte[] rootHash = this.constructRoot(hi, sequenceMerkle);
-        System.out.println("root -> "+Base64.getEncoder().encodeToString(rootHash));
-        System.out.println("preSH -> "+Base64.getEncoder().encodeToString(preSh));
-        System.out.println("SH - > "+Base64.getEncoder().encodeToString(sh));
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(utility.concatByte(preSh, rootHash));
         byte[] shC=sha.digest();
-        if ((utility.verifySign(arrayToVerify, sign, tsaKey, intestVect[3])) ) {
-            System.out.println("firma buona");
-          System.out.println("1 : "+Base64.getEncoder().encodeToString(shC)+"\n"+"2 : "+Base64.getEncoder().encodeToString(sh));
-            if(Arrays.equals(sh, shC)){
-                System.out.println("root buona");
-                check=true; //sistemare con array copy
-            }
-            
+        
+        
+        if (Arrays.equals(myHi,hi) && (utility.verifySign(arrayToVerify, sign, this.myKR.getPublicKey("DSA", this.tsaID+ "_chiave1024_"+this.indexDsaUsedbyTsa), intestVect[3])) && Arrays.equals(sh, shC)) {
+              
+               utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".valid_mt", myDoc);
+                
+            }else{
+            utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".unvalid_mt", myDoc);
+                
         }
-        return check;
-
+        File f = new File(utility.getPathFolder("readyTSA_" + this.tsaID + "/")+this.mappingNameFromOriginal.get(pathToVerify));
+        Files.delete(f.toPath()); //elimino l'elelemento servito
+  
+        
+        
+       
     }
 
     private byte[] constructRoot(byte[] hi, byte[] sequence) throws IOException, NoSuchAlgorithmException {
         
-        System.out.println("hi ->" +Base64.getEncoder().encodeToString(hi));
+        //System.out.println("hi ->" +Base64.getEncoder().encodeToString(hi));
         byte firstFusion = sequence[0];
         byte[] brotherLeaf = Arrays.copyOfRange(sequence, 1, 33);
-        System.out.println("1 -- " + firstFusion + " -> "+Base64.getEncoder().encodeToString(brotherLeaf));
+        //System.out.println("1 -- " + firstFusion + " -> "+Base64.getEncoder().encodeToString(brotherLeaf));
         byte secondFusion = sequence[33];
         byte[] firstBrother = Arrays.copyOfRange(sequence, 34, 66);
-         System.out.println("2 -- " + secondFusion+ " -> "+Base64.getEncoder().encodeToString(firstBrother));
+         //System.out.println("2 -- " + secondFusion+ " -> "+Base64.getEncoder().encodeToString(firstBrother));
         byte thirdFusion = sequence[66];
         byte[] lastBrother = Arrays.copyOfRange(sequence, 67, sequence.length);
-        System.out.println("3 -- " + thirdFusion+ " -> "+Base64.getEncoder().encodeToString(lastBrother));
+        //System.out.println("3 -- " + thirdFusion+ " -> "+Base64.getEncoder().encodeToString(lastBrother));
         byte[] root = null;
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
 

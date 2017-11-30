@@ -13,6 +13,7 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,7 +25,10 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Scanner;
 import java.util.TimeZone;
 
@@ -93,13 +97,34 @@ public class utility implements Serializable {
         File dir = new File(path);
         String[] dirName=dir.list();
         int k=0;
+        
         for(int i=0;i<dirName.length;i++){
             if(dirName[i].matches(".*("+ id+").*")){
+                
                 k+=1;
             }
         }
         return Integer.toString(k);
-    }    
+    } 
+    
+    public static String[] getMyFileToVerify(String id,String path){
+        File dir = new File(path);
+        String[] dirName=dir.list();
+        List<String> tmp= new ArrayList<String>();
+        for(int i=0;i<dirName.length;i++){
+            if(dirName[i].matches(".*("+ id+").*")){
+               tmp.add(dirName[i]);
+            }
+        }
+        String[] names=new String[tmp.size()];
+        for(int i=0;i<tmp.size();i++){
+          names[i] = tmp.get(i);
+            }
+        Arrays.sort(names);
+        return names;
+        }
+       
+    
     public static byte[] toHash256(byte[] file) throws NoSuchAlgorithmException{
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         sha.update(file);
@@ -186,6 +211,7 @@ public class utility implements Serializable {
         
     }
     
+    
     public static String[] getPathFiles(String x){
         Path currentRelativePath = Paths.get("src/progetto3");
         String s = currentRelativePath.toAbsolutePath().toString();
@@ -201,11 +227,12 @@ public class utility implements Serializable {
         for(int i =0 ;i<directoryListing.length;i++){
             directoryListing[i] = myDirectoryPath+"/"+directoryListing[i];
         }
+
+        Arrays.sort(directoryListing);
+
         
         return directoryListing;
         
     }
-    
-    
 
 }

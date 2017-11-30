@@ -44,6 +44,7 @@ public class TSA {
     private Map<String, String> mapTimeStamp;
     private Map<String, byte[]> allMapPath;
     private List<String> hID;
+    private List<String> fileID;
 
     private int timeframenumber;
     private String idTsa ;
@@ -61,6 +62,7 @@ public class TSA {
         this.mapTimeStamp = new HashMap<String, String>();
         this.allMapPath = new HashMap<String, byte[]>();
         this.hID = new ArrayList<String>(); // lista di id
+        this.fileID = new ArrayList<String>(); // lista di id
 
         String[] filesPath = utility.getPathFiles("Public");
 
@@ -114,17 +116,19 @@ public class TSA {
         for (String path : filelist) {
 
             readByteEnc = utility.loadFile(path); // leggo il file
+            System.out.println("path letto "+path);
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, this.encKey);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
             String timeStamp = utility.getTimeFromServer("GMT"); //prendo il timeStamp
             this.hID.add(currID);
+            this.fileID.add(utility.nameFile(path));
             this.mapTimeStamp.put(currID, timeStamp);
             sha.update(utility.concatByte(h_tmp, timeStamp.getBytes()));
             hlist.add(sha.digest());//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
 
-            File f = new File(path);
-            Files.delete(f.toPath()); //elimino l'elelemento servito
+           File f = new File(path);
+            Files.delete(f.toPath()); //elimino l'elelemento servito 
 
         }
 
@@ -154,7 +158,6 @@ public class TSA {
         byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
         this.savePublicSuperHash(newSuperHash); // la pubblico
         this.savePublicHash(hashRoot);   // pubblico anche l'hash
-
         this.createPath(hlist, levelFour, levelTwo);
         this.sendAll(hlist);
         this.clearAll();
@@ -165,20 +168,21 @@ public class TSA {
         this.allMapPath.clear();
         this.hID.clear();
         this.mapTimeStamp.clear();
+        this.fileID.clear();
     }
 
     private void createPath(List<byte[]> leaf, List<byte[]> l2, List<byte[]> l1) throws IOException {
 
         byte dx = 0;
         byte sx = 1;
-        this.allMapPath.put(this.hID.get(0), utility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
-        this.allMapPath.put(this.hID.get(1), utility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
-        this.allMapPath.put(this.hID.get(2), utility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
-        this.allMapPath.put(this.hID.get(3), utility.concatMerkleByte(sx, leaf.get(2), sx, l2.get(0), dx, l1.get(1)));
-        this.allMapPath.put(this.hID.get(4), utility.concatMerkleByte(dx, leaf.get(5), dx, l2.get(3), sx, l1.get(0)));
-        this.allMapPath.put(this.hID.get(5), utility.concatMerkleByte(sx, leaf.get(4), dx, l2.get(3), sx, l1.get(0)));
-        this.allMapPath.put(this.hID.get(6), utility.concatMerkleByte(dx, leaf.get(7), sx, l2.get(2), sx, l1.get(0)));
-        this.allMapPath.put(this.hID.get(7), utility.concatMerkleByte(sx, leaf.get(6), sx, l2.get(2), sx, l1.get(0)));
+        this.allMapPath.put(this.fileID.get(0), utility.concatMerkleByte(dx, leaf.get(1), dx, l2.get(1), dx, l1.get(1)));
+        this.allMapPath.put(this.fileID.get(1), utility.concatMerkleByte(sx, leaf.get(0), dx, l2.get(1), dx, l1.get(1)));
+        this.allMapPath.put(this.fileID.get(2), utility.concatMerkleByte(dx, leaf.get(3), sx, l2.get(0), dx, l1.get(1)));
+        this.allMapPath.put(this.fileID.get(3), utility.concatMerkleByte(sx, leaf.get(2), sx, l2.get(0), dx, l1.get(1)));
+        this.allMapPath.put(this.fileID.get(4), utility.concatMerkleByte(dx, leaf.get(5), dx, l2.get(3), sx, l1.get(0)));
+        this.allMapPath.put(this.fileID.get(5), utility.concatMerkleByte(sx, leaf.get(4), dx, l2.get(3), sx, l1.get(0)));
+        this.allMapPath.put(this.fileID.get(6), utility.concatMerkleByte(dx, leaf.get(7), sx, l2.get(2), sx, l1.get(0)));
+        this.allMapPath.put(this.fileID.get(7), utility.concatMerkleByte(sx, leaf.get(6), sx, l2.get(2), sx, l1.get(0)));
 
     }
 
@@ -212,24 +216,21 @@ public class TSA {
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
-        byte[] id = ("fakeID").getBytes();
-
+        
+        
         int i = 0;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
 
         while (i < fNumber) {
 
             random.nextBytes(bytes);
             sha.update(bytes);
-            outputStream.write(sha.digest());
-            outputStream.write(id);
-            byte completeDocument[] = outputStream.toByteArray();
-            outputStream.flush();
-            node.add(completeDocument);
+            node.add(sha.digest());
+            this.hID.add("fakeID");
             i += 1;
 
         }
-        outputStream.close(); //chiudo lo stream dopo aver inviato tutto
+         //chiudo lo stream dopo aver inviato tutto
         return node;
 
     }
@@ -280,27 +281,27 @@ public class TSA {
 
         byte[] sh = j.byteListSH.get(this.timeframenumber);
         byte[] preSh = j.byteListSH.get(this.timeframenumber - 1);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+       
         
         for (int i = 0; i < 8; i++) {
             if (!this.hID.get(i).matches(".*(fakeID).*")) {
-
+                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 byte[] intest = (this.hID.get(i) + "/" + this.idTsa + "/" + this.timeframenumber + "/" + this.typeSign + "/" + this.mapTimeStamp.get(this.hID.get(i)) + "/").getBytes();
                 outputStream.write(intest.length);
                 outputStream.write(intest);
                 outputStream.write(hlist.get(i));
-                outputStream.write(this.allMapPath.get(this.hID.get(i)));
+                outputStream.write(this.allMapPath.get(this.fileID.get(i)));
                 outputStream.write(sh);
                 outputStream.write(preSh);
                 byte[] signature = utility.sign(outputStream.toByteArray(), this.signKey, this.typeSign);
                 outputStream.write(signature);
                 byte[] tmp = outputStream.toByteArray();
                 utility.writeFile(pathFolder+"/"+this.hID.get(i)+utility.getIndexNameToSave(this.hID.get(i),pathFolder)+".mt", tmp);
-                
+                outputStream.close();
             }
-            outputStream.flush();
+           
         }
-        outputStream.close();
+        
         
         j.incrementTF();
         j.save(utility.getPathFolder("Public"), "Journal");
