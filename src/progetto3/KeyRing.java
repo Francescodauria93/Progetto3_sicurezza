@@ -279,7 +279,7 @@ public class KeyRing implements Serializable {
 
         IvParameterSpec iv = new IvParameterSpec(IV);
 
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         KeySpec spec = new PBEKeySpec(password.toCharArray(), this.salt, this.magicNumber, 256);
         SecretKey tmp = factory.generateSecret(spec);
         SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
@@ -309,7 +309,7 @@ public class KeyRing implements Serializable {
 
     public void SaveKeyRing(String password, String path, String label) throws FileNotFoundException, IOException, ClassNotFoundException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
 
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         KeySpec spec = new PBEKeySpec(password.toCharArray(), this.salt, this.magicNumber, 256);
         SecretKey tmp = factory.generateSecret(spec);
         SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");

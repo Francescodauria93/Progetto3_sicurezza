@@ -31,57 +31,40 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import progetto3.User;
 import progetto3.Journal;
+
 /**
  *
  * @author dp.alex
  */
 public class Progetto3 {
+
     /**
      * @param args the command line arguments
      */
 
     public static void main(String[] args) throws IOException, FileNotFoundException, ClassNotFoundException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, InvalidAlgorithmParameterException, SignatureException {
-        User giovanni=new User("giovanni");
-        User ciccio =new User("ciccio");
-        User daniele=new User("daniele");
-        User annalisa=new User("annalisa");
+        User giovanni = new User("giovanni");
+
         String[] filesPath = utility.getPathFiles("repoperprogetto3");
-        TSA tsa=new TSA("Tsa1");
-        
-        for(int i =0;i<10;i++){
-        giovanni.sendDocumentToTSA(filesPath[i], "Tsa1","1");
-        //ciccio.sendDocumentToTSA(filesPath[i],"Tsa1", "1");
+        TSA tsa = new TSA("Tsa1");
+
+        for (int i = 0; i < 20; i++) {
+            giovanni.sendDocumentToTSA(filesPath[i], "Tsa1", "1");
         }
-        for(int i =10;i<20;i++){
-        ciccio.sendDocumentToTSA(filesPath[i], "Tsa1","1");
-        }
-        
-        for(int i =20;i<30;i++){
-        daniele.sendDocumentToTSA(filesPath[i], "Tsa1","1");
-        }
+
         tsa.start();
-        
-        for(int i =20;i<30;i++){
-        giovanni.checkValidity(filesPath[i-20]);
-        ciccio.checkValidity(filesPath[i-10]);
-        daniele.checkValidity(filesPath[i]);
-        }
-        
+        giovanni.receivesMyMeesages();
+
         String[] JournalPath = utility.getPathFiles("Public");
         Journal j = new Journal();
         j.load(JournalPath[0]);
-        System.out.println("Frame corrente della catena: "+j.getTF());
-        
-        annalisa.sendDocumentToTSA("/Users/dp.alex/Desktop/frigewallpaper.jpg", "Tsa1","1");
-        tsa.start();
-        String[] logMessage=annalisa.checkValidity("/Users/dp.alex/Desktop/frigewallpaper.jpg");
-        for(int i=0;i<logMessage.length;i++){
-            System.out.println(logMessage[i]);
+        String path = utility.getPathFolder("InboxUsers/");
+
+        String[] log = giovanni.checkValidity(path + "02(giovanni_ven,_dic_1)");
+        for (int i = 0; i < log.length; i++) {
+            System.out.println(log[i]);
         }
-        System.out.println("Verifica al frame della marca di: "+logMessage[0]+"timeframe: "+logMessage[2]+"  esisto: "+giovanni.checkChain(Integer.parseInt(logMessage[2])));
-        System.out.println("Verifica intera caatena: "+ giovanni.checkAllChain());
+
     }
-    
-    
-    
+
 }

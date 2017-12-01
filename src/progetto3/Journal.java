@@ -26,10 +26,10 @@ public class Journal implements Serializable {
     
     List<byte []> byteListSH;
     List<byte []> byteListRH;
-    int timeFrameCurrent;
+    int NTree;
 
     public Journal() {
-        this.timeFrameCurrent=1;
+        this.NTree=1;
         this.byteListSH = new ArrayList<byte[]>();
         this.byteListRH = new ArrayList<byte[]>();
     }
@@ -42,7 +42,7 @@ public class Journal implements Serializable {
         Journal j = (Journal) in.readObject();
         this.byteListSH = j.getListSH();
         this.byteListRH = j.getListRH();
-        this.timeFrameCurrent = j.getTF();
+        this.NTree = j.getTF();
         
     }
     
@@ -67,11 +67,11 @@ public class Journal implements Serializable {
         return this.byteListRH;
     }
       public void incrementTF(){
-          this.timeFrameCurrent+=1;
+          this.NTree+=1;
       }
       
       public int getTF(){
-          return this.timeFrameCurrent;
+          return this.NTree;
       }
     
     

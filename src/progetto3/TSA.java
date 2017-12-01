@@ -46,8 +46,8 @@ public class TSA {
     private List<String> hID;
     private List<String> fileID;
 
-    private int timeframenumber;
-    private String idTsa ;
+    private int NTree;
+    private String idTsa;
     private String typeSign = "SHA256withDSA";
     private PrivateKey signKey;
     private PrivateKey encKey;
@@ -56,7 +56,7 @@ public class TSA {
 
         this.idTsa = id;
         KeyRing kTsa = new KeyRing();
-        kTsa.loadKeyRing(utility.getPathFolder("wallet") + "/"+id+".w", id+"pass");
+        kTsa.loadKeyRing(utility.getPathFolder("wallet") + "/" + id + ".w", id + "pass");
         this.signKey = kTsa.getMyPrivateSignature("DSA", "chiave1024_1");
         this.encKey = kTsa.getMyPrivateAsimmetric("RSA", "chiave1024_1");
         this.mapTimeStamp = new HashMap<String, String>();
@@ -69,9 +69,9 @@ public class TSA {
         if (filesPath.length != 0) {
             Journal j = new Journal();
             j.load(filesPath[0]);
-            this.timeframenumber = j.getTF();
+            this.NTree = j.getTF();
         } else {
-            this.timeframenumber = 1;
+            this.NTree = 1;
         }
 
     }
@@ -111,12 +111,11 @@ public class TSA {
         byte[] hashRoot = new byte[32]; // root Hash
 
         Cipher c = cipherUtility.getIstanceAsimmetricCipher("RSA", "ECB", "PKCS1Padding");
-        MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         // qui costruisco hlist e hID
         for (String path : filelist) {
 
             readByteEnc = utility.loadFile(path); // leggo il file
-           
+
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, this.encKey);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
@@ -124,10 +123,10 @@ public class TSA {
             this.hID.add(currID);
             this.fileID.add(utility.nameFile(path));
             this.mapTimeStamp.put(currID, timeStamp);
-            sha.update(utility.concatByte(h_tmp, timeStamp.getBytes()));
-            hlist.add(sha.digest());//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
 
-           File f = new File(path);
+            hlist.add(utility.toHash256(utility.concatByte(h_tmp, timeStamp.getBytes())));//inseristo nella lista degli hash il documento hashato seguito dal timeStamp
+
+            File f = new File(path);
             Files.delete(f.toPath()); //elimino l'elelemento servito 
 
         }
@@ -143,25 +142,22 @@ public class TSA {
         }
 
         for (int i = 0; i < 8; i += 2) { // costruisco il terzo livello
-            sha.update(utility.concatByte(hlist.get(i), hlist.get(i + 1)));
-            levelFour.add(sha.digest());
+
+            levelFour.add(utility.toHash256(utility.concatByte(hlist.get(i), hlist.get(i + 1))));
         }
         for (int i = 0; i < 4; i += 2) { // costruisco il secondo livello
-            sha.update(utility.concatByte(levelFour.get(i), levelFour.get(i + 1)));
-            levelTwo.add(sha.digest());
+            levelTwo.add(utility.toHash256(utility.concatByte(levelFour.get(i), levelFour.get(i + 1))));
         }
-        sha.update(utility.concatByte(levelTwo.get(0), levelTwo.get(1))); // costruisco la root
-        hashRoot = (sha.digest());
+        hashRoot = (utility.toHash256(utility.concatByte(levelTwo.get(0), levelTwo.get(1))));
 
         byte[] preSuperHash = this.getPreSuperHash(); // carico la superHashprecedente
-        sha.update(utility.concatByte(preSuperHash, hashRoot));
-        byte[] newSuperHash = sha.digest();  // costruisco la nuova publicSuperHash
+        byte[] newSuperHash = utility.toHash256(utility.concatByte(preSuperHash, hashRoot));  // costruisco la nuova publicSuperHash
         this.savePublicSuperHash(newSuperHash); // la pubblico
         this.savePublicHash(hashRoot);   // pubblico anche l'hash
         this.createPath(hlist, levelFour, levelTwo);
         this.sendAll(hlist);
         this.clearAll();
-        this.timeframenumber += 1; // aggiorno il timeframe
+        this.NTree += 1; // aggiorno il timeframe
     }
 
     private void clearAll() {
@@ -190,9 +186,9 @@ public class TSA {
 
         String filesPath = utility.getPathFolder("Public");
         Journal journal = new Journal();
-        journal.load(filesPath+"/Journal.j");
+        journal.load(filesPath + "/Journal.j");
         journal.byteListRH.add(hash);
-        journal.save(filesPath,"Journal");
+        journal.save(filesPath, "Journal");
 
     }
 
@@ -200,9 +196,9 @@ public class TSA {
 
         String filesPath = utility.getPathFolder("Public");
         Journal journal = new Journal();
-        journal.load(filesPath+"/Journal.j");
+        journal.load(filesPath + "/Journal.j");
         journal.byteListSH.add(superHash);
-        journal.save(filesPath,"Journal");
+        journal.save(filesPath, "Journal");
 
     }
 
@@ -216,29 +212,27 @@ public class TSA {
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
-        
-        
+
         int i = 0;
-        
 
         while (i < fNumber) {
-            
+
             random.nextBytes(bytes);
             sha.update(bytes);
             node.add(sha.digest());
-            this.fileID.add("fakeId"+Integer.toString(i));
+            this.fileID.add("fakeId" + Integer.toString(i));
             this.hID.add("fakeID");
             i += 1;
 
         }
-         //chiudo lo stream dopo aver inviato tutto
+        //chiudo lo stream dopo aver inviato tutto
         return node;
 
     }
 
     private void startSuperHash() throws NoSuchAlgorithmException, IOException { //cambiare
 
-         String fileFolder = utility.getPathFolder("Public");
+        String fileFolder = utility.getPathFolder("Public");
 
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[32];
@@ -255,7 +249,7 @@ public class TSA {
 
     private byte[] getPreSuperHash() throws IOException, NoSuchAlgorithmException, ClassNotFoundException { //cambiare
 
-        int currentTimeFrame = this.timeframenumber;
+        int currentTimeFrame = this.NTree;
         Path currentRelativePath = Paths.get("src/progetto3");
         String[] filesPath = utility.getPathFiles("Public");
 
@@ -263,7 +257,7 @@ public class TSA {
             this.startSuperHash();
         }
         filesPath = utility.getPathFiles("Public");
-        
+
         Journal journal = new Journal();
         journal.load(filesPath[0]);
         return journal.byteListSH.get(currentTimeFrame - 1);
@@ -275,19 +269,18 @@ public class TSA {
         //formato timeStamp: lunghezza intest in byte + intest in byte + hi (foglia i-esima) + sequenzaalbero + sh + sh-1 + firmaTSA
 
         String[] filesPath = utility.getPathFiles("Public");
-        String pathFolder = utility.getPathFolder("readyTsa_"+this.idTsa);
+        String pathFolder = utility.getPathFolder("readyTsa_" + this.idTsa);
 
         Journal j = new Journal();
         j.load(filesPath[0]);
 
-        byte[] sh = j.byteListSH.get(this.timeframenumber);
-        byte[] preSh = j.byteListSH.get(this.timeframenumber - 1);
-       
-        
+        byte[] sh = j.byteListSH.get(this.NTree);
+        byte[] preSh = j.byteListSH.get(this.NTree - 1);
+
         for (int i = 0; i < 8; i++) {
             if (!this.hID.get(i).matches(".*(fakeID).*")) {
-                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                byte[] intest = (this.hID.get(i) + "/" + this.idTsa + "/" + this.timeframenumber + "/" + this.typeSign + "/" + this.mapTimeStamp.get(this.hID.get(i)) + "/").getBytes();
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                byte[] intest = (this.hID.get(i) + "/" + this.idTsa + "/" + this.NTree + "/" + this.typeSign + "/" + this.mapTimeStamp.get(this.hID.get(i)) + "/").getBytes();
                 outputStream.write(intest.length);
                 outputStream.write(intest);
                 outputStream.write(hlist.get(i));
@@ -297,13 +290,12 @@ public class TSA {
                 byte[] signature = utility.sign(outputStream.toByteArray(), this.signKey, this.typeSign);
                 outputStream.write(signature);
                 byte[] tmp = outputStream.toByteArray();
-                utility.writeFile(pathFolder+"/"+this.hID.get(i)+"-"+utility.getIndexNameToSave(this.hID.get(i),pathFolder), tmp);
+                utility.writeFile(pathFolder + "/" + this.hID.get(i) + "-" + utility.getIndexNameToSave(this.hID.get(i), pathFolder), tmp);
                 outputStream.close();
             }
-           
+
         }
-        
-        
+
         j.incrementTF();
         j.save(utility.getPathFolder("Public"), "Journal");
 

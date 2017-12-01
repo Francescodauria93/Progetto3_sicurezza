@@ -36,7 +36,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author gia
  */
-public class TestKeyRing {
+public class GeneratorKeyRing {
 
     /**
      * @param args the command line arguments
