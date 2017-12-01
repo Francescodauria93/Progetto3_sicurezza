@@ -23,6 +23,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.crypto.*;
 import progetto3.KeyRing;
@@ -69,18 +70,16 @@ public class User {
         //salvo tutto in documento_ID_user.toTsa
         String destFolder = utility.getPathFolder("inboxTSA_" + idTsa + "/");
         String indexName=utility.getIndexNameToSave(this.myID , utility.getPathFolder("inboxTSA_" + idTsa + "/"));
-        this.mappingNameFromOriginal.put(pathFile,this.myID+indexName+".mt");
-        utility.writeFile(destFolder+this.myID+indexName, DocumentEncrypted);
+        this.mappingNameFromOriginal.put(pathFile,this.myID+"-"+indexName);
+        utility.writeFile(destFolder+this.myID+"-"+indexName, DocumentEncrypted);
 
     }
 
-    public void checkValidity(String pathToVerify) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    public String[] checkValidity(String pathToVerify) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, ClassNotFoundException {
   
         String pathReadyTsa=utility.getPathFolder("readyTSA_" + this.tsaID + "/");
-       
         String destFolder = utility.getPathFolder("inboxUsers/");
 
-        
         byte[] myDoc = utility.loadFile(utility.getPathFolder("readyTSA_" + this.tsaID + "/")+this.mappingNameFromOriginal.get(pathToVerify));
         int size_intest = (int) myDoc[0];
         byte[] intest = Arrays.copyOfRange(myDoc, 1, size_intest + 1);
@@ -96,39 +95,26 @@ public class User {
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
         sha.update(utility.concatByte(preSh, rootHash));
         byte[] shC=sha.digest();
-        
-        
         if (Arrays.equals(myHi,hi) && (utility.verifySign(arrayToVerify, sign, this.myKR.getPublicKey("DSA", this.tsaID+ "_chiave1024_"+this.indexDsaUsedbyTsa), intestVect[3])) && Arrays.equals(sh, shC)) {
-              
-               utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".valid_mt", myDoc);
-                
+               utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".valid_mt", myDoc);  
             }else{
-            utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".unvalid_mt", myDoc);
-                
+            utility.writeFile(destFolder+utility.nameFile(pathToVerify)+"_"+this.myID+".unvalid_mt", myDoc);    
         }
         File f = new File(utility.getPathFolder("readyTSA_" + this.tsaID + "/")+this.mappingNameFromOriginal.get(pathToVerify));
         Files.delete(f.toPath()); //elimino l'elelemento servito
-  
-        
-        
-       
+        return intestVect;
     }
 
     private byte[] constructRoot(byte[] hi, byte[] sequence) throws IOException, NoSuchAlgorithmException {
         
-        //System.out.println("hi ->" +Base64.getEncoder().encodeToString(hi));
         byte firstFusion = sequence[0];
         byte[] brotherLeaf = Arrays.copyOfRange(sequence, 1, 33);
-        //System.out.println("1 -- " + firstFusion + " -> "+Base64.getEncoder().encodeToString(brotherLeaf));
         byte secondFusion = sequence[33];
         byte[] firstBrother = Arrays.copyOfRange(sequence, 34, 66);
-         //System.out.println("2 -- " + secondFusion+ " -> "+Base64.getEncoder().encodeToString(firstBrother));
         byte thirdFusion = sequence[66];
         byte[] lastBrother = Arrays.copyOfRange(sequence, 67, sequence.length);
-        //System.out.println("3 -- " + thirdFusion+ " -> "+Base64.getEncoder().encodeToString(lastBrother));
         byte[] root = null;
         MessageDigest sha = MessageDigest.getInstance("SHA-256"); //creo una istanza di SHA
-
         if (firstFusion == 0) {
             sha.update(utility.concatByte(hi, brotherLeaf));
             root = sha.digest();
@@ -153,8 +139,32 @@ public class User {
         return root;
     }
 
-    private boolean checkChain() throws IOException {
-        return true;
+    public boolean checkChain(int frame) throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+        boolean check=false;
+       String[] filesPath = utility.getPathFiles("Public");
+        if (filesPath.length != 0) {
+            Journal j = new Journal();
+            j.load(filesPath[0]);
+            List <byte[]> shList=j.getListSH();
+            List<byte[]> rhList=j.getListRH();
+            for(int i=1;i<frame;i++){
+                if(Arrays.equals(shList.get(i),utility.toHash256(utility.concatByte(shList.get(i-1),rhList.get(i-1))))){
+                    check=true;
+                }else {
+                    return false;
+                }
+            }
+            }
+        return check;
+    }
+    
+    public boolean checkAllChain() throws IOException, ClassNotFoundException, NoSuchAlgorithmException {
+        String[] filesPath = utility.getPathFiles("Public");
+        boolean check=false;
+        Journal j = new Journal();
+        j.load(filesPath[0]);
+        check=this.checkChain(j.getTF());
+        return check;
     }
 
 }

@@ -116,7 +116,7 @@ public class TSA {
         for (String path : filelist) {
 
             readByteEnc = utility.loadFile(path); // leggo il file
-            System.out.println("path letto "+path);
+           
             byte[] readByte = cipherUtility.asimmetricDecode(c, readByteEnc, this.encKey);
             byte[] h_tmp = Arrays.copyOfRange(readByte, 0, 32); //hash temporaneo
             String currID = new String(Arrays.copyOfRange(readByte, 32, readByte.length));
@@ -222,10 +222,11 @@ public class TSA {
         
 
         while (i < fNumber) {
-
+            
             random.nextBytes(bytes);
             sha.update(bytes);
             node.add(sha.digest());
+            this.fileID.add("fakeId"+Integer.toString(i));
             this.hID.add("fakeID");
             i += 1;
 
@@ -296,7 +297,7 @@ public class TSA {
                 byte[] signature = utility.sign(outputStream.toByteArray(), this.signKey, this.typeSign);
                 outputStream.write(signature);
                 byte[] tmp = outputStream.toByteArray();
-                utility.writeFile(pathFolder+"/"+this.hID.get(i)+utility.getIndexNameToSave(this.hID.get(i),pathFolder)+".mt", tmp);
+                utility.writeFile(pathFolder+"/"+this.hID.get(i)+"-"+utility.getIndexNameToSave(this.hID.get(i),pathFolder), tmp);
                 outputStream.close();
             }
            
